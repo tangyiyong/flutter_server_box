@@ -6,13 +6,16 @@ import 'package:toolbox/core/extension/context/locale.dart';
 import 'package:toolbox/core/extension/context/snackbar.dart';
 import 'package:toolbox/core/route.dart';
 import 'package:toolbox/core/utils/misc.dart';
+import 'package:toolbox/core/utils/platform/auth.dart';
+import 'package:toolbox/core/utils/share.dart';
 import 'package:toolbox/data/res/logger.dart';
 import 'package:toolbox/data/res/misc.dart';
 import 'package:toolbox/data/res/store.dart';
 import 'package:toolbox/data/res/ui.dart';
+import 'package:toolbox/view/page/setting/platform_pub.dart';
 import 'package:toolbox/view/widget/custom_appbar.dart';
 import 'package:toolbox/view/widget/future_widget.dart';
-import 'package:toolbox/view/widget/round_rect_card.dart';
+import 'package:toolbox/view/widget/cardx.dart';
 import 'package:toolbox/view/widget/store_switch.dart';
 import 'package:watch_connectivity/watch_connectivity.dart';
 
@@ -40,7 +43,9 @@ class _IOSSettingsPageState extends State<IOSSettingsPage> {
           _buildPushToken(),
           _buildAutoUpdateHomeWidget(),
           _buildWatchApp(),
-        ].map((e) => RoundRectCard(e)).toList(),
+          if (BioAuth.isPlatformSupported)
+            PlatformPublicSettings.buildBioAuth(),
+        ].map((e) => CardX(e)).toList(),
       ),
     );
   }
@@ -54,7 +59,7 @@ class _IOSSettingsPageState extends State<IOSSettingsPage> {
         padding: EdgeInsets.zero,
         onPressed: () {
           if (_pushToken.value != null) {
-            copy2Clipboard(_pushToken.value!);
+            Shares.copy(_pushToken.value!);
             context.showSnackBar(l10n.success);
           } else {
             context.showSnackBar(l10n.getPushTokenFailed);
@@ -65,7 +70,6 @@ class _IOSSettingsPageState extends State<IOSSettingsPage> {
         future: getToken(),
         loading: Text(l10n.gettingToken),
         error: (error, trace) => Text('${l10n.error}: $error'),
-        noData: Text(l10n.nullToken),
         success: (text) {
           _pushToken.value = text;
           return Text(
@@ -116,7 +120,6 @@ class _IOSSettingsPageState extends State<IOSSettingsPage> {
           onTap: () async => _onTapWatchApp(ctx),
         );
       },
-      noData: UIs.placeholder,
     );
   }
 
@@ -127,7 +130,7 @@ class _IOSSettingsPageState extends State<IOSSettingsPage> {
       text: text,
       langCode: 'json',
       title: 'Watch app',
-    ).go(context);
+    ).go<String>(context);
     if (result == null) {
       return;
     }

@@ -1,6 +1,7 @@
 import 'package:after_layout/after_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:toolbox/core/extension/context/common.dart';
+import 'package:toolbox/core/extension/context/dialog.dart';
 import 'package:toolbox/core/extension/context/locale.dart';
 import 'package:toolbox/core/extension/context/snackbar.dart';
 import 'package:toolbox/data/res/provider.dart';
@@ -56,8 +57,22 @@ class _SnippetEditPageState extends State<SnippetEditPage>
     return [
       IconButton(
         onPressed: () {
-          Providers.snippet.del(widget.snippet!);
-          context.pop();
+          context.showRoundDialog(
+            title: Text(l10n.attention),
+            child: Text(l10n.askContinue(
+              '${l10n.delete} ${l10n.snippet}(${widget.snippet!.name})',
+            )),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Pros.snippet.del(widget.snippet!);
+                  context.pop();
+                  context.pop();
+                },
+                child: Text(l10n.ok, style: UIs.textRed),
+              ),
+            ],
+          );
         },
         tooltip: l10n.delete,
         icon: const Icon(Icons.delete),
@@ -84,9 +99,9 @@ class _SnippetEditPageState extends State<SnippetEditPage>
           note: note.isEmpty ? null : note,
         );
         if (widget.snippet != null) {
-          Providers.snippet.update(widget.snippet!, snippet);
+          Pros.snippet.update(widget.snippet!, snippet);
         } else {
-          Providers.snippet.add(snippet);
+          Pros.snippet.add(snippet);
         }
         context.pop();
       },
@@ -118,9 +133,9 @@ class _SnippetEditPageState extends State<SnippetEditPage>
           onChanged: (p0) => setState(() {
             _tags = p0;
           }),
-          allTags: [...Providers.server.tags],
+          allTags: [...Pros.server.tags],
           onRenameTag: (old, n) => setState(() {
-            Providers.server.renameTag(old, n);
+            Pros.server.renameTag(old, n);
           }),
         ),
         Input(

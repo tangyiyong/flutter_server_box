@@ -35,6 +35,11 @@ class SEn extends S {
   String get alterUrl => 'Alter url';
 
   @override
+  String askContinue(Object msg) {
+    return '$msg, continue?';
+  }
+
+  @override
   String get attention => 'Attention';
 
   @override
@@ -137,7 +142,13 @@ class SEn extends S {
   String get delete => 'Delete';
 
   @override
+  String get deleteScripts => 'Delete server scripts at the same time';
+
+  @override
   String get deleteServers => 'Batch delete servers';
+
+  @override
+  String get dirEmpty => 'Make sure dir is empty.';
 
   @override
   String get disabled => 'Disabled';
@@ -146,7 +157,13 @@ class SEn extends S {
   String get disconnected => 'Disconnected';
 
   @override
+  String get disk => 'Disk';
+
+  @override
   String get diskIgnorePath => 'Ignore path for disk';
+
+  @override
+  String get displayName => 'Display name';
 
   @override
   String dl2Local(Object fileName) {
@@ -191,6 +208,9 @@ class SEn extends S {
 
   @override
   String get editor => 'Editor';
+
+  @override
+  String get editorHighlightTip => 'The current code highlighting performance is worse and can be optionally turned off to improve.';
 
   @override
   String get encode => 'Encode';
@@ -274,6 +294,9 @@ class SEn extends S {
   String get goto => 'Go to';
 
   @override
+  String get highlight => 'Code highlight';
+
+  @override
   String get homeWidgetUrlConfig => 'Config home widget url';
 
   @override
@@ -323,6 +346,9 @@ class SEn extends S {
   String get isBusy => 'Is busy now';
 
   @override
+  String get jumpServer => 'Jump server';
+
+  @override
   String get keepForeground => 'Keep app foreground!';
 
   @override
@@ -356,6 +382,9 @@ class SEn extends S {
   String get loadingFiles => 'Loading files...';
 
   @override
+  String get location => 'Location';
+
+  @override
   String get log => 'Log';
 
   @override
@@ -365,6 +394,9 @@ class SEn extends S {
   String madeWithLove(Object myGithub) {
     return 'Made with ❤️ by $myGithub';
   }
+
+  @override
+  String get manual => 'Manual';
 
   @override
   String get max => 'max';
@@ -382,9 +414,6 @@ class SEn extends S {
   String get mission => 'Mission';
 
   @override
-  String get moveOutServerFuncBtns => 'Server function button location';
-
-  @override
   String get moveOutServerFuncBtnsHelp => 'On: can be displayed below each card on the Server Tab page. Off: can be displayed at the top of the Server Details page.';
 
   @override
@@ -395,6 +424,9 @@ class SEn extends S {
 
   @override
   String get needRestart => 'Need to restart app';
+
+  @override
+  String get net => 'Net';
 
   @override
   String get netViewType => 'Net view type';
@@ -446,6 +478,12 @@ class SEn extends S {
 
   @override
   String get open => 'Open';
+
+  @override
+  String get openLastPath => 'Open the last path';
+
+  @override
+  String get openLastPathTip => 'Different servers will have different logs, and the log is the path to the exit';
 
   @override
   String get paste => 'Paste';
@@ -504,6 +542,12 @@ class SEn extends S {
   String get pwd => 'Password';
 
   @override
+  String get read => 'Read';
+
+  @override
+  String get reboot => 'Reboot';
+
+  @override
   String get remotePath => 'Remote path';
 
   @override
@@ -524,11 +568,6 @@ class SEn extends S {
   String get restoreSuccess => 'Restore success. Restart app to apply.';
 
   @override
-  String restoreSureWithDate(Object date) {
-    return 'Are you sure to restore from $date ?';
-  }
-
-  @override
   String get result => 'Result';
 
   @override
@@ -547,10 +586,16 @@ class SEn extends S {
   String get second => 's';
 
   @override
+  String get sequence => 'Sequence';
+
+  @override
   String get server => 'Server';
 
   @override
   String get serverDetailOrder => 'Detail page widget order';
+
+  @override
+  String get serverFuncBtns => 'Server func buttons';
 
   @override
   String get serverOrder => 'Server order';
@@ -580,13 +625,16 @@ class SEn extends S {
   String get sftpDlPrepare => 'Preparing to connect...';
 
   @override
-  String get sftpRmrfDirSummary => 'Use `rm -rf` to delete a folder in SFTP.';
+  String get sftpRmrDirSummary => 'Use `rm -r` to delete a folder in SFTP.';
 
   @override
   String get sftpSSHConnected => 'SFTP Connected';
 
   @override
   String get showDistLogo => 'Show distribution logo';
+
+  @override
+  String get shutdown => 'Shutdown';
 
   @override
   String get snippet => 'Snippet';
@@ -620,31 +668,22 @@ class SEn extends S {
   String get success => 'Success';
 
   @override
-  String sureDelete(Object name) {
-    return 'Are you sure to delete [$name]?';
-  }
+  String get suspend => 'Suspend';
 
   @override
-  String get sureDirEmpty => 'Make sure dir is empty.';
+  String get suspendTip => 'The suspend function requires root privileges and systemd support.';
 
   @override
-  String get sureNoPwd => 'Are you sure to use no password?';
-
-  @override
-  String sureStop(Object item) {
-    return 'Sure to stop [$item] ?';
-  }
-
-  @override
-  String sureToDeleteServer(Object server) {
-    return 'Are you sure to delete server [$server]?';
-  }
+  String get syncTip => 'A restart may be required for some changes to take effect.';
 
   @override
   String get system => 'System';
 
   @override
   String get tag => 'Tags';
+
+  @override
+  String get temperature => 'Temperature';
 
   @override
   String get terminal => 'Terminal';
@@ -705,6 +744,9 @@ class SEn extends S {
   String get urlOrJson => 'URL or JSON';
 
   @override
+  String get useNoPwd => 'No password will be used.';
+
+  @override
   String get user => 'User';
 
   @override
@@ -742,4 +784,7 @@ class SEn extends S {
 
   @override
   String get willTakEeffectImmediately => 'Will take effect immediately';
+
+  @override
+  String get write => 'Write';
 }

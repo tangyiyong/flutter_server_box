@@ -11,11 +11,11 @@ import 'package:toolbox/core/extension/context/snackbar.dart';
 import 'package:toolbox/core/extension/locale.dart';
 import 'package:toolbox/core/extension/context/dialog.dart';
 import 'package:toolbox/core/extension/stringx.dart';
-import 'package:toolbox/core/utils/platform/auth.dart';
 import 'package:toolbox/core/utils/platform/base.dart';
-import 'package:toolbox/core/utils/rebuild.dart';
 import 'package:toolbox/data/res/provider.dart';
+import 'package:toolbox/data/res/rebuild.dart';
 import 'package:toolbox/data/res/store.dart';
+import 'package:toolbox/view/widget/expand_tile.dart';
 
 import '../../../core/persistant_store.dart';
 import '../../../core/route.dart';
@@ -29,9 +29,8 @@ import '../../../data/res/path.dart';
 import '../../../data/res/ui.dart';
 import '../../widget/color_picker.dart';
 import '../../widget/custom_appbar.dart';
-import '../../widget/future_widget.dart';
 import '../../widget/input_field.dart';
-import '../../widget/round_rect_card.dart';
+import '../../widget/cardx.dart';
 import '../../widget/store_switch.dart';
 import '../../widget/value_notifier.dart';
 
@@ -100,42 +99,51 @@ class _SettingPageState extends State<SettingPage> {
       appBar: CustomAppBar(
         title: Text(l10n.setting),
         actions: [
-          IconButton(
-            onPressed: () => context.showRoundDialog(
-              title: Text(l10n.attention),
-              child: Text(l10n.sureDelete(l10n.all)),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    _setting.box.deleteAll(_setting.box.keys);
-                    context.pop();
-                    context.showSnackBar(l10n.success);
-                  },
-                  child:
-                      Text(l10n.ok, style: const TextStyle(color: Colors.red)),
-                ),
-              ],
+          Padding(
+            padding: const EdgeInsets.only(right: 17),
+            child: InkWell(
+              onTap: () => context.showRoundDialog(
+                title: Text(l10n.attention),
+                child: Text(l10n.askContinue(
+                  '${l10n.delete}: **${l10n.all}** ${l10n.setting}',
+                )),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      _setting.box.deleteAll(_setting.box.keys);
+                      context.pop();
+                      context.showSnackBar(l10n.success);
+                    },
+                    child: Text(
+                      l10n.ok,
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  ),
+                ],
+              ),
+
+              /// Only for debug, this will cause the app to crash
+              // onDoubleTap: () => context.showRoundDialog(
+              //   title: Text(l10n.attention),
+              //   child: Text(l10n.sureDelete(l10n.all)),
+              //   actions: [
+              //     TextButton(
+              //       onPressed: () {
+              //         Stores.docker.box.deleteFromDisk();
+              //         Stores.server.box.deleteFromDisk();
+              //         Stores.setting.box.deleteFromDisk();
+              //         Stores.history.box.deleteFromDisk();
+              //         Stores.snippet.box.deleteFromDisk();
+              //         Stores.key.box.deleteFromDisk();
+              //         exit(0);
+              //       },
+              //       child: Text(l10n.ok,
+              //           style: const TextStyle(color: Colors.red)),
+              //     ),
+              //   ],
+              // ),
+              child: const Icon(Icons.delete),
             ),
-            // onDoubleTap: () => context.showRoundDialog(
-            //   title: Text(l10n.attention),
-            //   child: Text(l10n.sureDelete(l10n.all)),
-            //   actions: [
-            //     TextButton(
-            //       onPressed: () {
-            //         Stores.docker.box.deleteFromDisk();
-            //         Stores.server.box.deleteFromDisk();
-            //         Stores.setting.box.deleteFromDisk();
-            //         Stores.history.box.deleteFromDisk();
-            //         Stores.snippet.box.deleteFromDisk();
-            //         Stores.key.box.deleteFromDisk();
-            //         context.pop();
-            //         context.showSnackBar(l10n.success);
-            //       },
-            //       child: Text(l10n.ok, style: const TextStyle(color: Colors.red)),
-            //     ),
-            //   ],
-            // ),
-            icon: const Icon(Icons.delete),
           ),
         ],
       ),
@@ -148,6 +156,8 @@ class _SettingPageState extends State<SettingPage> {
           _buildServer(),
           _buildTitle('SSH'),
           _buildSSH(),
+          _buildTitle('SFTP'),
+          _buildSFTP(),
           _buildTitle(l10n.editor),
           _buildEditor(),
           _buildTitle(l10n.fullScreen),
@@ -178,16 +188,13 @@ class _SettingPageState extends State<SettingPage> {
       //_buildLaunchPage(),
       _buildCheckUpdate(),
     ];
-    if (BioAuth.isPlatformSupported) {
-      children.add(_buildBioAuth());
-    }
 
     /// Platform specific settings
     if (OS.hasSettings) {
       children.add(_buildPlatformSetting());
     }
     return Column(
-      children: children.map((e) => RoundRectCard(e)).toList(),
+      children: children.map((e) => CardX(e)).toList(),
     );
   }
 
@@ -197,22 +204,22 @@ class _SettingPageState extends State<SettingPage> {
         _buildFullScreenSwitch(),
         _buildFullScreenJitter(),
         _buildFulScreenRotateQuarter(),
-      ].map((e) => RoundRectCard(e)).toList(),
+      ].map((e) => CardX(e)).toList(),
     );
   }
 
   Widget _buildServer() {
     return Column(
       children: [
-        _buildMoveOutServerFuncBtns(),
-        _buildServerOrder(),
+        _buildServerFuncBtns(),
+        _buildSequence(),
         _buildNetViewType(),
         _buildUpdateInterval(),
         _buildMaxRetry(),
         //_buildDiskIgnorePath(),
         _buildDeleteServers(),
         //if (isDesktop) _buildDoubleColumnServersPage(),
-      ].map((e) => RoundRectCard(e)).toList(),
+      ].map((e) => CardX(e)).toList(),
     );
   }
 
@@ -225,8 +232,7 @@ class _SettingPageState extends State<SettingPage> {
         // Use hardware keyboard on desktop, so there is no need to set it
         if (isMobile) _buildKeyboardType(),
         _buildSSHVirtKeys(),
-        _buildSftpRmrfDir(),
-      ].map((e) => RoundRectCard(e)).toList(),
+      ].map((e) => CardX(e)).toList(),
     );
   }
 
@@ -236,7 +242,8 @@ class _SettingPageState extends State<SettingPage> {
         _buildEditorFontSize(),
         _buildEditorTheme(),
         _buildEditorDarkTheme(),
-      ].map((e) => RoundRectCard(e)).toList(),
+        _buildEditorHighlight(),
+      ].map((e) => CardX(e)).toList(),
     );
   }
 
@@ -256,7 +263,7 @@ class _SettingPageState extends State<SettingPage> {
         return ListTile(
           title: Text(l10n.autoCheckUpdate),
           subtitle: Text(display, style: UIs.textGrey),
-          onTap: () => doUpdate(ctx, force: true),
+          onTap: () => doUpdate(ctx),
           trailing: StoreSwitch(prop: _setting.autoCheckAppUpdate),
         );
       },
@@ -293,7 +300,7 @@ class _SettingPageState extends State<SettingPage> {
           onSelected: (int val) {
             _updateInterval.value = val;
             _setting.serverStatusUpdateInterval.put(val);
-            Providers.server.startAutoRefresh();
+            Pros.server.startAutoRefresh();
             if (val == 0) {
               context.showSnackBar(l10n.updateIntervalEqual0);
             }
@@ -323,44 +330,45 @@ class _SettingPageState extends State<SettingPage> {
       onTap: () async {
         final ctrl = TextEditingController(text: primaryColor.toHex);
         await context.showRoundDialog(
-            title: Text(l10n.primaryColorSeed),
-            child: StatefulBuilder(builder: (context, setState) {
-              final children = <Widget>[
-                /// Plugin [dynamic_color] is not supported on iOS
-                if (!isIOS)
-                  ListTile(
-                    title: Text(l10n.followSystem),
-                    trailing: StoreSwitch(
-                      prop: _setting.useSystemPrimaryColor,
-                      func: (_) => setState(() {}),
-                    ),
-                  )
-              ];
-              if (!_setting.useSystemPrimaryColor.fetch()) {
-                children.addAll([
-                  Input(
-                    onSubmitted: _onSaveColor,
-                    controller: ctrl,
-                    hint: '#8b2252',
-                    icon: Icons.colorize,
+          title: Text(l10n.primaryColorSeed),
+          child: StatefulBuilder(builder: (context, setState) {
+            final children = <Widget>[
+              /// Plugin [dynamic_color] is not supported on iOS
+              if (!isIOS)
+                ListTile(
+                  title: Text(l10n.followSystem),
+                  trailing: StoreSwitch(
+                    prop: _setting.useSystemPrimaryColor,
+                    func: (_) => setState(() {}),
                   ),
-                  ColorPicker(
-                    color: primaryColor,
-                    onColorChanged: (c) => ctrl.text = c.toHex,
-                  )
-                ]);
-              }
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                children: children,
-              );
-            }),
-            actions: [
-              TextButton(
-                onPressed: () => _onSaveColor(ctrl.text),
-                child: Text(l10n.ok),
-              ),
-            ]);
+                )
+            ];
+            if (!_setting.useSystemPrimaryColor.fetch()) {
+              children.addAll([
+                Input(
+                  onSubmitted: _onSaveColor,
+                  controller: ctrl,
+                  hint: '#8b2252',
+                  icon: Icons.colorize,
+                ),
+                ColorPicker(
+                  color: primaryColor,
+                  onColorChanged: (c) => ctrl.text = c.toHex,
+                )
+              ]);
+            }
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: children,
+            );
+          }),
+          actions: [
+            TextButton(
+              onPressed: () => _onSaveColor(ctrl.text),
+              child: Text(l10n.ok),
+            ),
+          ],
+        );
       },
     );
   }
@@ -472,7 +480,14 @@ class _SettingPageState extends State<SettingPage> {
         .toList();
     // Issue #57
     final len = ThemeMode.values.length;
+
+    /// Add AMOLED theme
     items.add(PopupMenuItem(value: len, child: Text(_buildThemeModeStr(len))));
+
+    /// Add AUTO-AMOLED theme
+    items.add(
+      PopupMenuItem(value: len + 1, child: Text(_buildThemeModeStr(len + 1))),
+    );
 
     return ListTile(
       title: Text(
@@ -510,6 +525,8 @@ class _SettingPageState extends State<SettingPage> {
         return l10n.dark;
       case 3:
         return 'AMOLED';
+      case 4:
+        return '${l10n.auto} AMOLED';
       default:
         return l10n.auto;
     }
@@ -835,6 +852,23 @@ class _SettingPageState extends State<SettingPage> {
     );
   }
 
+  Widget _buildSFTP() {
+    return Column(
+      children: [
+        _buildSftpRmrDir(),
+        _buildSftpOpenLastPath(),
+      ].map((e) => CardX(e)).toList(),
+    );
+  }
+
+  Widget _buildSftpOpenLastPath() {
+    return ListTile(
+      title: Text(l10n.openLastPath),
+      subtitle: Text(l10n.openLastPathTip, style: UIs.textGrey),
+      trailing: StoreSwitch(prop: _setting.sftpOpenLastPath),
+    );
+  }
+
   Widget _buildNetViewType() {
     final items = NetViewType.values
         .map((e) => PopupMenuItem(
@@ -875,10 +909,12 @@ class _SettingPageState extends State<SettingPage> {
           (e) => TextButton(
             onPressed: () => context.showRoundDialog(
               title: Text(l10n.attention),
-              child: Text(l10n.sureDelete(e)),
+              child: Text(l10n.askContinue(
+                '${l10n.delete} ${l10n.server}($e)',
+              )),
               actions: [
                 TextButton(
-                  onPressed: () => Providers.server.delServer(e),
+                  onPressed: () => Pros.server.delServer(e),
                   child: Text(l10n.ok),
                 )
               ],
@@ -899,38 +935,47 @@ class _SettingPageState extends State<SettingPage> {
     );
   }
 
-  Widget _buildMoveOutServerFuncBtns() {
-    return ListTile(
-      title: Text(l10n.moveOutServerFuncBtns),
-      subtitle: Text(l10n.moveOutServerFuncBtnsHelp, style: UIs.textSize13Grey),
-      trailing: StoreSwitch(prop: _setting.moveOutServerTabFuncBtns),
+  Widget _buildServerFuncBtns() {
+    return ExpandTile(
+      title: Text(l10n.serverFuncBtns),
+      subtitle: Text(
+        '${l10n.location} / ${l10n.displayName}',
+        style: UIs.textSize13Grey,
+      ),
+      children: [
+        ListTile(
+          title: Text(l10n.location),
+          subtitle:
+              Text(l10n.moveOutServerFuncBtnsHelp, style: UIs.textSize13Grey),
+          trailing: StoreSwitch(prop: _setting.moveOutServerTabFuncBtns),
+        ),
+        ListTile(
+          title: Text(l10n.displayName),
+          trailing: StoreSwitch(prop: _setting.serverFuncBtnsDisplayName),
+        ),
+      ],
     );
   }
 
-  Widget _buildServerOrder() {
-    return ListTile(
-      title: Text(l10n.serverOrder),
-      subtitle: Text('${l10n.serverOrder} / ${l10n.serverDetailOrder}',
-          style: UIs.textGrey),
-      trailing: const Icon(Icons.keyboard_arrow_right),
-      onTap: () => context.showRoundDialog(
-        title: Text(l10n.choose),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              title: Text(l10n.serverOrder),
-              trailing: const Icon(Icons.keyboard_arrow_right),
-              onTap: () => AppRoute.serverOrder().go(context),
-            ),
-            ListTile(
-              title: Text(l10n.serverDetailOrder),
-              trailing: const Icon(Icons.keyboard_arrow_right),
-              onTap: () => AppRoute.serverDetailOrder().go(context),
-            ),
-          ],
-        ),
+  Widget _buildSequence() {
+    return ExpandTile(
+      title: Text(l10n.sequence),
+      subtitle: Text(
+        '${l10n.serverOrder} / ${l10n.serverDetailOrder} ...',
+        style: UIs.textGrey,
       ),
+      children: [
+        ListTile(
+          title: Text(l10n.serverOrder),
+          trailing: const Icon(Icons.keyboard_arrow_right),
+          onTap: () => AppRoute.serverOrder().go(context),
+        ),
+        ListTile(
+          title: Text(l10n.serverDetailOrder),
+          trailing: const Icon(Icons.keyboard_arrow_right),
+          onTap: () => AppRoute.serverDetailOrder().go(context),
+        ),
+      ],
     );
   }
 
@@ -986,11 +1031,11 @@ class _SettingPageState extends State<SettingPage> {
     );
   }
 
-  Widget _buildSftpRmrfDir() {
+  Widget _buildSftpRmrDir() {
     return ListTile(
-      title: const Text('rm -rf'),
-      subtitle: Text(l10n.sftpRmrfDirSummary, style: UIs.textGrey),
-      trailing: StoreSwitch(prop: _setting.sftpRmrfDir),
+      title: const Text('rm -r'),
+      subtitle: Text(l10n.sftpRmrDirSummary, style: UIs.textGrey),
+      trailing: StoreSwitch(prop: _setting.sftpRmrDir),
     );
   }
 
@@ -1000,47 +1045,6 @@ class _SettingPageState extends State<SettingPage> {
   //     trailing: StoreSwitch(prop: _setting.doubleColumnServersPage),
   //   );
   // }
-
-  Widget _buildBioAuth() {
-    return FutureWidget<bool>(
-      future: BioAuth.isAvail,
-      loading: ListTile(
-        title: Text(l10n.bioAuth),
-        subtitle: Text(l10n.serverTabLoading, style: UIs.textGrey),
-      ),
-      error: (e, __) => ListTile(
-        title: Text(l10n.bioAuth),
-        subtitle: Text('${l10n.failed}: $e', style: UIs.textGrey),
-      ),
-      success: (can) {
-        return ListTile(
-          title: Text(l10n.bioAuth),
-          subtitle: can
-              ? null
-              : const Text('Error: Bio auth is not available',
-                  style: UIs.textGrey),
-          trailing: can
-              ? StoreSwitch(
-                  prop: Stores.setting.useBioAuth,
-                  func: (val) async {
-                    if (val) {
-                      Stores.setting.useBioAuth.put(false);
-                      return;
-                    }
-                    // Only auth when turn off (val == false)
-                    final result = await BioAuth.auth(l10n.authRequired);
-                    // If failed, turn on again
-                    if (result != AuthResult.success) {
-                      Stores.setting.useBioAuth.put(true);
-                    }
-                  },
-                )
-              : null,
-        );
-      },
-      noData: UIs.placeholder,
-    );
-  }
 
   Widget _buildPlatformSetting() {
     return ListTile(
@@ -1058,6 +1062,14 @@ class _SettingPageState extends State<SettingPage> {
             break;
         }
       },
+    );
+  }
+
+  Widget _buildEditorHighlight() {
+    return ListTile(
+      title: Text(l10n.highlight),
+      subtitle: Text(l10n.editorHighlightTip, style: UIs.textGrey),
+      trailing: StoreSwitch(prop: _setting.editorHighlight),
     );
   }
 }

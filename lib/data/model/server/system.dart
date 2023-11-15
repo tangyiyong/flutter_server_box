@@ -9,23 +9,26 @@ enum SystemType {
 
   const SystemType._(this.value);
 
-  static SystemType? parse(String? value) {
-    if (value == null) return null;
-    switch (value) {
+  static SystemType parse(String value) {
+    switch (value.trim()) {
       case linuxSign:
         return SystemType.linux;
       case bsdSign:
         return SystemType.bsd;
+      default:
+        // Fallback to linux
+        return SystemType.linux;
     }
-    return null;
   }
 
-  bool isSegmentsLenMatch(int len) {
+  bool isSegmentsLenMatch(int len) => len == segmentsLen;
+
+  int get segmentsLen {
     switch (this) {
       case SystemType.linux:
-        return len == StatusCmdType.values.length;
+        return StatusCmdType.values.length;
       case SystemType.bsd:
-        return len == BSDStatusCmdType.values.length;
+        return BSDStatusCmdType.values.length;
     }
   }
 }

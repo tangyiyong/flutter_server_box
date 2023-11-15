@@ -10,7 +10,7 @@ const buildDataFilePath = 'lib/data/res/build_data.dart';
 const apkPath = 'build/app/outputs/flutter-apk/app-release.apk';
 const appleXCConfigPath = 'Runner.xcodeproj/project.pbxproj';
 const macOSArchievePath = 'build/macos/Build/Products/Release/server_box.app';
-const releaseDir = 'release';
+const releaseDir = '/Volumes/pm981/release/serverbox';
 
 var regAppleProjectVer = RegExp(r'CURRENT_PROJECT_VERSION = .+;');
 var regAppleMarketVer = RegExp(r'MARKETING_VERSION = .+');
@@ -18,8 +18,9 @@ var regAppleMarketVer = RegExp(r'MARKETING_VERSION = .+');
 const buildFuncs = {
   'ios': flutterBuildIOS,
   'android': flutterBuildAndroid,
-  'macos': flutterBuildMacOS,
+  'mac': flutterBuildMacOS,
   'linux': flutterBuildLinux,
+  'win': flutterBuildWin,
 };
 
 int? build;
@@ -66,7 +67,7 @@ Future<int> getGitModificationCount() async {
 }
 
 Future<String> getFlutterVersion() async {
-  final result = await Process.run('flutter', ['--version']);
+  final result = await Process.run('flutter', ['--version'], runInShell: true);
   final stdout = result.stdout as String;
   return stdout.split('\n')[0].split('•')[0].split(' ')[1].trim();
 }
@@ -96,7 +97,7 @@ Future<void> updateBuildData() async {
 }
 
 Future<void> dartFormat() async {
-  final result = await Process.run('dart', ['format', '.']);
+  final result = await Process.run('dart', ['format', '.'], runInShell: true);
   print(result.stdout);
   if (result.exitCode != 0) {
     print(result.stderr);
@@ -122,20 +123,17 @@ Future<void> flutterBuild(String buildType) async {
     args.add('--bundle-sksl-path=$skslPath');
   }
   final isAndroid = 'apk' == buildType;
-  // [--target-platform] only for Android
   if (isAndroid) {
-    args.addAll([
-      '--target-platform=android-arm64',
-    ]);
+    // Only arm64
+    args.add('--target-platform=android-arm64');
   }
   print('\n[$buildType]\nBuilding with args: ${args.join(' ')}');
-  final buildResult = await Process.run('flutter', args);
+  final buildResult = await Process.run('flutter', args, runInShell: true);
   final exitCode = buildResult.exitCode;
 
   if (exitCode != 0) {
     print(buildResult.stdout);
     print(buildResult.stderr);
-    print('\nBuild failed with exit code $exitCode');
     exit(exitCode);
   }
 }
@@ -146,7 +144,6 @@ Future<void> flutterBuildIOS() async {
 
 Future<void> flutterBuildMacOS() async {
   await flutterBuild('macos');
-  await scpMacOS2CDN();
 }
 
 Future<void> flutterBuildAndroid() async {
@@ -157,7 +154,52 @@ Future<void> flutterBuildAndroid() async {
 
 Future<void> flutterBuildLinux() async {
   await flutterBuild('linux');
+  // mkdir ServerBox.AppDir
+  await Process.run('mkdir', ['ServerBox.AppDir']);
+  // cp -r build/linux/x64/release/bundle/* ServerBox.AppDir
+  await Process.run('cp', [
+    '-r',
+    './build/linux/x64/release/bundle/*',
+    'ServerBox.AppDir',
+  ]);
+  // cp -r assets/app_icon.png ServerBox.AppDir
+  await Process.run('cp', [
+    '-r',
+    './assets/app_icon.png',
+    'ServerBox.AppDir',
+  ]);
+  // Create AppRun
+  const appRun = '''
+#!/bin/sh
+cd "\$(dirname "\$0")"
+exec ./ServerBox
+''';
+  await File('ServerBox.AppDir/AppRun').writeAsString(appRun);
+  // chmod +x AppRun
+  await Process.run('chmod', ['+x', 'ServerBox.AppDir/AppRun']);
+  // Create .desktop
+  const desktop = '''
+[Desktop Entry]
+Name=ServerBox
+Exec=ServerBox
+Icon=app_icon
+Type=Application
+Categories=Network;
+''';
+  await File('ServerBox.AppDir/ServerBox.desktop').writeAsString(desktop);
+  // Run appimagetool
+  await Process.run('appimagetool', ['ServerBox.AppDir']);
+
   await scpLinux2CDN();
+
+  // Clean build files
+  await Process.run('rm', ['-r', 'ServerBox.AppDir']);
+  await Process.run('rm', ['ServerBox-x86_64.AppImage']);
+}
+
+Future<void> flutterBuildWin() async {
+  await flutterBuild('windows');
+  //await scpWindows2CDN();
 }
 
 Future<void> scpApk2CDN() async {
@@ -174,42 +216,12 @@ Future<void> scpApk2CDN() async {
   }
 }
 
-Future<void> scpMacOS2CDN() async {
-  await Process.run('mv', [
-    macOSArchievePath,
-    'release',
-  ]);
-  final zipName = '$build.app.zip';
-  // Zip the .app
-  await Process.run(
-      'zip',
-      [
-        '-r',
-        zipName,
-        'server_box.app',
-      ],
-      workingDirectory: releaseDir);
-  final result = await Process.run(
-    'scp',
-    [
-      '$releaseDir/$zipName',
-      'hk:/var/www/res/serverbox/$build.app.zip',
-    ],
-    runInShell: true,
-  );
-  if (result.exitCode != 0) {
-    print(result.stderr);
-    exit(1);
-  }
-  print('Upload macOS $zipName finished.');
-}
-
 Future<void> scpLinux2CDN() async {
   final result = await Process.run(
     'scp',
     [
-      './build/linux/x64/release/bundle/server_box.tar.gz',
-      'hk:/var/www/res/serverbox/$build.tar.gz',
+      'ServerBox-x86_64.AppImage',
+      'hk:/var/www/res/serverbox/$build.AppImage',
     ],
     runInShell: true,
   );
@@ -217,7 +229,23 @@ Future<void> scpLinux2CDN() async {
     print(result.stderr);
     exit(1);
   }
-  print('Upload Linux $build.tar.gz finished.');
+  print('Upload $build.AppImage finished.');
+}
+
+Future<void> scpWindows2CDN() async {
+  final result = await Process.run(
+    'scp',
+    [
+      './build/windows/runner/Release/server_box.zip',
+      'hk:/var/www/res/serverbox/$build.zip',
+    ],
+    runInShell: true,
+  );
+  if (result.exitCode != 0) {
+    print(result.stderr);
+    exit(1);
+  }
+  print('Upload Windows $build.zip finished.');
 }
 
 Future<void> changeAppleVersion() async {

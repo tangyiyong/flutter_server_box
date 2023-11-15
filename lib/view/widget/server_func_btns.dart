@@ -11,17 +11,16 @@ import 'package:toolbox/core/utils/platform/base.dart';
 import 'package:toolbox/core/utils/platform/path.dart';
 import 'package:toolbox/data/model/pkg/manager.dart';
 import 'package:toolbox/data/model/server/dist.dart';
+import 'package:toolbox/data/res/path.dart';
 import 'package:toolbox/data/res/provider.dart';
+import 'package:toolbox/data/res/store.dart';
 
 import '../../core/route.dart';
-import '../../core/utils/misc.dart';
 import '../../core/utils/server.dart';
 import '../../data/model/app/menu.dart';
 import '../../data/model/pkg/upgrade_info.dart';
 import '../../data/model/server/server_private_info.dart';
-import '../../data/model/server/snippet.dart';
 import 'popup_menu.dart';
-import 'tag.dart';
 
 class ServerFuncBtnsTopRight extends StatelessWidget {
   final ServerPrivateInfo spi;
@@ -66,15 +65,52 @@ class ServerFuncBtns extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // return Row(
+    //   mainAxisAlignment: MainAxisAlignment.spaceAround,
+    //   children: ServerTabMenuType.values
+    //       .map(
+    //         (e) => Stores.setting.serverFuncBtnsDisplayName.fetch()
+    //             ? Column(
+    //                 mainAxisSize: MainAxisSize.min,
+    //                 children: [
+    //                   IconButton(
+    //                     onPressed: () => _onTapMoreBtns(e, spi, context),
+    //                     padding: EdgeInsets.zero,
+    //                     tooltip: e.name,
+    //                     icon: Icon(e.icon, size: iconSize ?? 15),
+    //                   ),
+    //                   Text(e.toStr, style: UIs.textSize9Grey)
+    //                 ],
+    //               )
+    //             : IconButton(
+    //                 onPressed: () => _onTapMoreBtns(e, spi, context),
+    //                 padding: EdgeInsets.zero,
+    //                 tooltip: e.name,
+    //                 icon: Icon(e.icon, size: iconSize ?? 15),
+    //               ),
+    //       )
+    //       .toList(),
+    // );
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: ServerTabMenuType.values
-          .map((e) => IconButton(
-                onPressed: () => _onTapMoreBtns(e, spi, context),
-                padding: EdgeInsets.zero,
-                tooltip: e.name,
-                icon: Icon(e.icon, size: iconSize ?? 15),
-              ))
+          .map(
+            (e) => IconButton(
+              onPressed: () => _onTapMoreBtns(e, spi, context),
+              padding: EdgeInsets.zero,
+              tooltip: e.name,
+              icon: Stores.setting.serverFuncBtnsDisplayName.fetch()
+                  ? Column(
+                      children: [
+                        Icon(e.icon, size: iconSize ?? 15),
+                        Text(e.toStr,
+                            style: const TextStyle(
+                                fontSize: 7, color: Colors.grey))
+                      ],
+                    )
+                  : Icon(e.icon, size: iconSize ?? 15),
+            ),
+          )
           .toList(),
     );
   }
@@ -95,31 +131,29 @@ void _onTapMoreBtns(
         check: () => _checkClient(context, spi.id),
       );
       break;
-    case ServerTabMenuType.snippet:
-      final snippets = await showDialog<List<Snippet>>(
-        context: context,
-        builder: (_) => TagPicker<Snippet>(
-          items: Providers.snippet.snippets,
-          tags: Providers.server.tags.toSet(),
-        ),
-      );
-      if (snippets == null) {
-        return;
-      }
-      final result = await Providers.server.runSnippets(spi.id, snippets);
-      if (result != null && result.isNotEmpty) {
-        context.showRoundDialog(
-          title: Text(l10n.result),
-          child: Text(result),
-          actions: [
-            TextButton(
-              onPressed: () => copy2Clipboard(result),
-              child: Text(l10n.copy),
-            )
-          ],
-        );
-      }
-      break;
+    // case ServerTabMenuType.snippet:
+    //   final snippets = await context.showPickDialog<Snippet>(
+    //     items: Pros.snippet.snippets,
+    //     name: (e) => e.name,
+    //     multi: false
+    //   );
+    //   if (snippets == null || snippets.isEmpty) {
+    //     return;
+    //   }
+    //   final result = await Pros.server.runSnippets(spi.id, snippets.first);
+    //   if (result != null && result.isNotEmpty) {
+    //     context.showRoundDialog(
+    //       title: Text(l10n.result),
+    //       child: Text(result),
+    //       actions: [
+    //         TextButton(
+    //           onPressed: () => copy2Clipboard(result),
+    //           child: Text(l10n.copy),
+    //         )
+    //       ],
+    //     );
+    //   }
+    //   break;
     case ServerTabMenuType.docker:
       AppRoute.docker(spi: spi).checkGo(
         context: context,
@@ -154,17 +188,19 @@ Future<void> _gotoSSH(
     extraArgs.addAll(['-p', '${spi.port}']);
   }
 
-  final path = () {
-    final tempKeyFileName = 'srvbox_pk_${spi.pubKeyId}';
-    return joinPath(Directory.systemTemp.path, tempKeyFileName);
+  final path = await () async {
+    final tempKeyFileName = 'srvbox_pk_${spi.keyId}';
+
+    /// For security reason, save the private key file to app doc path
+    return joinPath(await Paths.doc, tempKeyFileName);
   }();
   final file = File(path);
-  final shouldGenKey = spi.pubKeyId != null;
+  final shouldGenKey = spi.keyId != null;
   if (shouldGenKey) {
     if (await file.exists()) {
       await file.delete();
     }
-    await file.writeAsString(getPrivateKey(spi.pubKeyId!));
+    await file.writeAsString(getPrivateKey(spi.keyId!));
     extraArgs.addAll(["-i", path]);
   }
 
@@ -180,7 +216,7 @@ Future<void> _gotoSSH(
     default:
       context.showSnackBar('Mismatch system: $system');
   }
-  // For security reason, delete the private key file after use
+
   if (shouldGenKey) {
     if (!await file.exists()) return;
     await Future.delayed(const Duration(seconds: 2), file.delete);
@@ -188,7 +224,7 @@ Future<void> _gotoSSH(
 }
 
 bool _checkClient(BuildContext context, String id) {
-  final server = Providers.server.pick(id: id);
+  final server = Pros.server.pick(id: id);
   if (server == null || server.client == null) {
     context.showSnackBar(l10n.waitConnection);
     return false;

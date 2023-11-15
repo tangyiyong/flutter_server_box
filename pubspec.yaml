@@ -4,7 +4,7 @@ publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: ">=2.17.0 <3.0.0"
+  sdk: ">=3.0.0"
 
 dependencies:
   archive: ^3.3.8
@@ -19,7 +19,10 @@ dependencies:
   after_layout: ^1.1.0
   url_launcher: ^6.1.8
   countly_flutter: ^23.6.0
-  dartssh2: ^2.8.2
+  dartssh2:
+    git:
+      ref: master
+      url: https://github.com/lollipopkit/dartssh2
   logging: ^1.0.2
   circle_chart:
     git:
@@ -54,6 +57,8 @@ dependencies:
     git:
       ref: master
       url: https://github.com/lollipopkit/watch_connectivity
+  choice: ^2.0.0
+  flutter_secure_storage: ^9.0.0
 
 dev_dependencies:
   flutter_native_splash: ^2.1.6

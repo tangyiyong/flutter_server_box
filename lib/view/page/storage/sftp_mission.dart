@@ -5,15 +5,15 @@ import 'package:toolbox/core/extension/context/locale.dart';
 import 'package:toolbox/core/extension/datetime.dart';
 import 'package:toolbox/core/extension/context/dialog.dart';
 import 'package:toolbox/core/route.dart';
+import 'package:toolbox/core/utils/share.dart';
 import 'package:toolbox/data/res/provider.dart';
 
 import '../../../core/extension/numx.dart';
-import '../../../core/utils/misc.dart';
 import '../../../data/model/sftp/req.dart';
 import '../../../data/provider/sftp.dart';
 import '../../../data/res/ui.dart';
 import '../../widget/custom_appbar.dart';
-import '../../widget/round_rect_card.dart';
+import '../../widget/cardx.dart';
 
 class SftpMissionPage extends StatefulWidget {
   const SftpMissionPage({Key? key}) : super(key: key);
@@ -52,6 +52,20 @@ class _SftpMissionPageState extends State<SftpMissionPage> {
   }
 
   Widget _buildItem(SftpReqStatus status) {
+    final err = status.error;
+    if (err != null) {
+      return _wrapInCard(
+        status: status,
+        subtitle: l10n.error,
+        trailing: IconButton(
+          onPressed: () => context.showRoundDialog(
+            title: Text(l10n.error),
+            child: Text(err.toString()),
+          ),
+          icon: const Icon(Icons.error),
+        ),
+      );
+    }
     switch (status.status) {
       case SftpWorkerStatus.finished:
         final time = status.spentTime.toString();
@@ -72,7 +86,7 @@ class _SftpMissionPageState extends State<SftpMissionPage> {
                   },
                   icon: const Icon(Icons.file_open)),
               IconButton(
-                onPressed: () => shareFiles([status.req.localPath]),
+                onPressed: () => Shares.files([status.req.localPath]),
                 icon: const Icon(Icons.open_in_new),
               )
             ],
@@ -119,7 +133,7 @@ class _SftpMissionPageState extends State<SftpMissionPage> {
     Widget? trailing,
   }) {
     final time = DateTime.fromMicrosecondsSinceEpoch(status.id);
-    return RoundRectCard(
+    return CardX(
       ListTile(
         leading: Text(time.hourMinute),
         title: Text(
@@ -137,11 +151,13 @@ class _SftpMissionPageState extends State<SftpMissionPage> {
     return IconButton(
       onPressed: () => context.showRoundDialog(
           title: Text(l10n.attention),
-          child: Text(l10n.sureDelete(name)),
+          child: Text(l10n.askContinue(
+            '${l10n.delete} ${l10n.mission}($name)',
+          )),
           actions: [
             TextButton(
               onPressed: () {
-                Providers.sftp.cancel(id);
+                Pros.sftp.cancel(id);
                 context.pop();
               },
               child: Text(l10n.ok),

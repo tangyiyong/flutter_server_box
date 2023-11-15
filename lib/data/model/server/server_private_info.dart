@@ -18,14 +18,20 @@ class ServerPrivateInfo {
   final String user;
   @HiveField(4)
   final String? pwd;
+
+  /// [id] of private key
   @HiveField(5)
-  final String? pubKeyId;
+  final String? keyId;
   @HiveField(6)
   final List<String>? tags;
   @HiveField(7)
   final String? alterUrl;
   @HiveField(8)
   final bool? autoConnect;
+
+  /// [id] of the jump server
+  @HiveField(9)
+  final String? jumpId;
 
   final String id;
 
@@ -35,13 +41,13 @@ class ServerPrivateInfo {
     required this.port,
     required this.user,
     required this.pwd,
-    this.pubKeyId,
+    this.keyId,
     this.tags,
     this.alterUrl,
     this.autoConnect,
+    this.jumpId,
   }) : id = '$user@$ip:$port';
 
-  /// TODO: if any field is changed, remember to update [id] [name]
   ServerPrivateInfo.fromJson(Map<String, dynamic> json)
       : ip = json["ip"].toString(),
         port = json["port"] ?? 22,
@@ -51,10 +57,11 @@ class ServerPrivateInfo {
         name = json["name"]?.toString() ??
             '${json["user"]?.toString() ?? 'root'}@${json["ip"].toString()}:${json["port"] ?? 22}',
         pwd = json["authorization"]?.toString(),
-        pubKeyId = json["pubKeyId"]?.toString(),
+        keyId = json["pubKeyId"]?.toString(),
         tags = json["tags"]?.cast<String>(),
         alterUrl = json["alterUrl"]?.toString(),
-        autoConnect = json["autoConnect"];
+        autoConnect = json["autoConnect"],
+        jumpId = json["jumpId"];
 
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = <String, dynamic>{};
@@ -63,20 +70,23 @@ class ServerPrivateInfo {
     data["port"] = port;
     data["user"] = user;
     data["authorization"] = pwd;
-    data["pubKeyId"] = pubKeyId;
+    data["pubKeyId"] = keyId;
     data["tags"] = tags;
     data["alterUrl"] = alterUrl;
     data["autoConnect"] = autoConnect;
+    data["jumpId"] = jumpId;
     return data;
   }
 
-  Server? get server => Providers.server.pick(spi: this);
+  Server? get server => Pros.server.pick(spi: this);
+  Server? get jumpServer => Pros.server.pick(id: jumpId);
 
   bool shouldReconnect(ServerPrivateInfo old) {
     return id != old.id ||
         pwd != old.pwd ||
-        pubKeyId != old.pubKeyId ||
-        alterUrl != old.alterUrl;
+        keyId != old.keyId ||
+        alterUrl != old.alterUrl ||
+        jumpId != old.jumpId;
   }
 
   _IpPort fromStringUrl() {

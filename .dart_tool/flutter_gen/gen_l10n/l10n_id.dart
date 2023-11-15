@@ -35,6 +35,11 @@ class SId extends S {
   String get alterUrl => 'Alter url';
 
   @override
+  String askContinue(Object msg) {
+    return '$msg, lanjutkan?';
+  }
+
+  @override
   String get attention => 'Perhatian';
 
   @override
@@ -137,7 +142,13 @@ class SId extends S {
   String get delete => 'Menghapus';
 
   @override
+  String get deleteScripts => 'Menghapus skrip server secara bersamaan';
+
+  @override
   String get deleteServers => 'Penghapusan server secara batch';
+
+  @override
+  String get dirEmpty => 'Pastikan dir kosong.';
 
   @override
   String get disabled => 'Dengan disabilitas';
@@ -146,7 +157,13 @@ class SId extends S {
   String get disconnected => 'Terputus';
 
   @override
+  String get disk => 'Disk';
+
+  @override
   String get diskIgnorePath => 'Abaikan jalan untuk disk';
+
+  @override
+  String get displayName => 'Nama tampilan';
 
   @override
   String dl2Local(Object fileName) {
@@ -191,6 +208,9 @@ class SId extends S {
 
   @override
   String get editor => 'Editor';
+
+  @override
+  String get editorHighlightTip => 'Performa penyorotan kode saat ini lebih buruk, dan dapat dimatikan secara opsional untuk perbaikan.';
 
   @override
   String get encode => 'Menyandi';
@@ -274,6 +294,9 @@ class SId extends S {
   String get goto => 'Pergi ke';
 
   @override
+  String get highlight => 'Sorotan kode';
+
+  @override
   String get homeWidgetUrlConfig => 'Konfigurasi URL Widget Rumah';
 
   @override
@@ -323,6 +346,9 @@ class SId extends S {
   String get isBusy => 'Sibuk sekarang';
 
   @override
+  String get jumpServer => 'Lompat server';
+
+  @override
   String get keepForeground => 'Simpan Aplikasi Foreground!';
 
   @override
@@ -356,6 +382,9 @@ class SId extends S {
   String get loadingFiles => 'Memuat file ...';
 
   @override
+  String get location => 'Lokasi';
+
+  @override
   String get log => 'Catatan';
 
   @override
@@ -365,6 +394,9 @@ class SId extends S {
   String madeWithLove(Object myGithub) {
     return 'Dibuat dengan ❤️ oleh $myGithub';
   }
+
+  @override
+  String get manual => 'Manual';
 
   @override
   String get max => 'Max';
@@ -382,9 +414,6 @@ class SId extends S {
   String get mission => 'Misi';
 
   @override
-  String get moveOutServerFuncBtns => 'Lokasi tombol fungsi server';
-
-  @override
   String get moveOutServerFuncBtnsHelp => 'Aktif: dapat ditampilkan di bawah setiap kartu pada halaman Tab Server. Nonaktif: dapat ditampilkan di bagian atas halaman Rincian Server.';
 
   @override
@@ -395,6 +424,9 @@ class SId extends S {
 
   @override
   String get needRestart => 'Perlu memulai ulang aplikasi';
+
+  @override
+  String get net => 'Net';
 
   @override
   String get netViewType => 'Jenis tampilan bersih';
@@ -446,6 +478,12 @@ class SId extends S {
 
   @override
   String get open => 'Membuka';
+
+  @override
+  String get openLastPath => 'Buka jalur terakhir';
+
+  @override
+  String get openLastPathTip => 'Server yang berbeda akan memiliki catatan yang berbeda, dan catatan tersebut adalah jalur menuju pintu keluar';
 
   @override
   String get paste => 'Tempel';
@@ -504,6 +542,12 @@ class SId extends S {
   String get pwd => 'Kata sandi';
 
   @override
+  String get read => 'Baca';
+
+  @override
+  String get reboot => 'Reboot';
+
+  @override
   String get remotePath => 'Jalur jarak jauh';
 
   @override
@@ -524,11 +568,6 @@ class SId extends S {
   String get restoreSuccess => 'Kembalikan kesuksesan. Mulai ulang aplikasi untuk diterapkan.';
 
   @override
-  String restoreSureWithDate(Object date) {
-    return 'Apakah Anda pasti akan memulihkan dari $date?';
-  }
-
-  @override
   String get result => 'Hasil';
 
   @override
@@ -547,10 +586,16 @@ class SId extends S {
   String get second => 'S';
 
   @override
+  String get sequence => 'Urutan';
+
+  @override
   String get server => 'Server';
 
   @override
   String get serverDetailOrder => 'Detail pesanan widget halaman';
+
+  @override
+  String get serverFuncBtns => 'Tombol fungsi server';
 
   @override
   String get serverOrder => 'Pesanan server';
@@ -580,13 +625,16 @@ class SId extends S {
   String get sftpDlPrepare => 'Bersiap untuk terhubung ...';
 
   @override
-  String get sftpRmrfDirSummary => 'Gunakan `rm -rf` untuk menghapus dir di SFTP';
+  String get sftpRmrDirSummary => 'Gunakan `rm -r` untuk menghapus dir di SFTP';
 
   @override
   String get sftpSSHConnected => 'Sftp terhubung';
 
   @override
   String get showDistLogo => 'Tampilkan logo distribusi';
+
+  @override
+  String get shutdown => 'Matikan';
 
   @override
   String get snippet => 'Snippet';
@@ -620,31 +668,22 @@ class SId extends S {
   String get success => 'Kesuksesan';
 
   @override
-  String sureDelete(Object name) {
-    return 'Apakah Anda pasti akan menghapus [$name]?';
-  }
+  String get suspend => 'Suspend';
 
   @override
-  String get sureDirEmpty => 'Pastikan dir kosong.';
+  String get suspendTip => 'Fungsi penangguhan memerlukan hak akses root dan dukungan systemd.';
 
   @override
-  String get sureNoPwd => 'Apakah Anda pasti tidak menggunakan kata sandi?';
-
-  @override
-  String sureStop(Object item) {
-    return 'Anda yakin ingin menghentikan [$item]?';
-  }
-
-  @override
-  String sureToDeleteServer(Object server) {
-    return 'Apakah Anda pasti akan menghapus server [$server]?';
-  }
+  String get syncTip => 'Pengaktifan ulang mungkin diperlukan agar beberapa perubahan dapat diterapkan.';
 
   @override
   String get system => 'Sistem';
 
   @override
   String get tag => 'Tag';
+
+  @override
+  String get temperature => 'Suhu';
 
   @override
   String get terminal => 'Terminal';
@@ -705,6 +744,9 @@ class SId extends S {
   String get urlOrJson => 'URL atau JSON';
 
   @override
+  String get useNoPwd => 'Tidak ada kata sandi yang akan digunakan.';
+
+  @override
   String get user => 'Username';
 
   @override
@@ -742,4 +784,7 @@ class SId extends S {
 
   @override
   String get willTakEeffectImmediately => 'Akan segera berlaku';
+
+  @override
+  String get write => 'Tulis';
 }

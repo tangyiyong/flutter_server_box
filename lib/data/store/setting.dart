@@ -6,8 +6,7 @@ import '../model/app/net_view.dart';
 import '../res/default.dart';
 
 class SettingStore extends PersistentStore {
-  /// Convert all settings into json
-  Map<String, dynamic> toJson() => {for (var e in box.keys) e: box.get(e)};
+  SettingStore() : super('setting');
 
   // ------BEGIN------
   //
@@ -83,7 +82,7 @@ class SettingStore extends PersistentStore {
   // Max retry count when connect to server
   late final maxRetryCount = StoreProperty(box, 'maxRetryCount', 2);
 
-  // Night mode: 0 -> auto, 1 -> light, 2 -> dark
+  // Night mode: 0 -> auto, 1 -> light, 2 -> dark, 3 -> AMOLED, 4 -> AUTO-AMOLED
   late final themeMode = StoreProperty(box, 'themeMode', 0);
 
   // Font file path
@@ -184,10 +183,10 @@ class SettingStore extends PersistentStore {
     true,
   );
 
-  /// Whether use `rm -rf` to delete directory on SFTP
-  late final sftpRmrfDir = StoreProperty(
+  /// Whether use `rm -r` to delete directory on SFTP
+  late final sftpRmrDir = StoreProperty(
     box,
-    'sftpRmrfDir',
+    'sftpRmrDir',
     false,
   );
 
@@ -205,23 +204,32 @@ class SettingStore extends PersistentStore {
     false,
   );
 
-  /// Only valid on iOS / Android
+  /// Only valid on iOS / Android / Windows
   late final useBioAuth = StoreProperty(
     box,
     'useBioAuth',
     false,
   );
 
+  /// The performance of highlight is bad
+  late final editorHighlight = StoreProperty(box, 'editorHighlight', true);
+
+  /// Open SFTP with last viewed path
+  late final sftpOpenLastPath = StoreProperty(box, 'sftpOpenLastPath', true);
+
+  /// Show tip of suspend
+  late final showSuspendTip = StoreProperty(box, 'showSuspendTip', true);
+
+  /// Server func btns display name
+  late final serverFuncBtnsDisplayName =
+      StoreProperty(box, 'serverFuncBtnsDisplayName', true);
+
   // Never show these settings for users
-  // Guide for these settings:
-  // - key should start with `_` and be shorter as possible
   //
   // ------BEGIN------
 
   /// Version of store db
   late final storeVersion = StoreProperty(box, 'storeVersion', 0);
 
-  /// Whether is first time to add Snippet<Install ServerBoxMonitor>
-  late final fTISBM = StoreProperty(box, '_fTISBM', true);
   // ------END------
 }

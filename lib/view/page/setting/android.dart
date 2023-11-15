@@ -6,10 +6,12 @@ import 'package:toolbox/core/extension/context/common.dart';
 import 'package:toolbox/core/extension/context/dialog.dart';
 import 'package:toolbox/core/extension/context/locale.dart';
 import 'package:toolbox/core/extension/context/snackbar.dart';
+import 'package:toolbox/core/utils/platform/auth.dart';
 import 'package:toolbox/data/res/store.dart';
+import 'package:toolbox/view/page/setting/platform_pub.dart';
 import 'package:toolbox/view/widget/custom_appbar.dart';
 import 'package:toolbox/view/widget/input_field.dart';
-import 'package:toolbox/view/widget/round_rect_card.dart';
+import 'package:toolbox/view/widget/cardx.dart';
 import 'package:toolbox/view/widget/store_switch.dart';
 
 class AndroidSettingsPage extends StatefulWidget {
@@ -39,7 +41,9 @@ class _AndroidSettingsPageState extends State<AndroidSettingsPage> {
         children: [
           _buildBgRun(),
           _buildAndroidWidgetSharedPreference(),
-        ].map((e) => RoundRectCard(e)).toList(),
+          if (BioAuth.isPlatformSupported)
+            PlatformPublicSettings.buildBioAuth(),
+        ].map((e) => CardX(e)).toList(),
       ),
     );
   }

@@ -7,10 +7,16 @@ class UIs {
 
   static const textSize9Grey = TextStyle(color: Colors.grey, fontSize: 9);
   static const textSize11 = TextStyle(fontSize: 11);
+  static const textSize11Bold = TextStyle(
+    fontSize: 11,
+    fontWeight: FontWeight.w500,
+  );
   static const textSize11Grey = TextStyle(color: Colors.grey, fontSize: 11);
   static const textSize13 = TextStyle(fontSize: 13);
-  static const textSize13Bold =
-      TextStyle(fontSize: 13, fontWeight: FontWeight.bold);
+  static const textSize13Bold = TextStyle(
+    fontSize: 13,
+    fontWeight: FontWeight.bold,
+  );
   static const textSize13Grey = TextStyle(color: Colors.grey, fontSize: 13);
   static const textSize15 = TextStyle(fontSize: 15);
   static const textSize18 = TextStyle(fontSize: 18);
@@ -46,6 +52,14 @@ class UIs {
   );
 
   static const centerLoading = Center(child: CircularProgressIndicator());
+
+  static const centerSizedLoadingSmall = SizedBox(
+    width: 23,
+    height: 23,
+    child: Center(
+      child: CircularProgressIndicator(),
+    ),
+  );
 
   static const centerSizedLoading = SizedBox(
     width: 77,

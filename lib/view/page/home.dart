@@ -26,7 +26,7 @@ import '../../data/res/misc.dart';
 import '../../data/res/ui.dart';
 import '../../data/res/url.dart';
 import '../widget/custom_appbar.dart';
-import '../widget/round_rect_card.dart';
+import '../widget/cardx.dart';
 import '../widget/url_text.dart';
 import '../widget/value_notifier.dart';
 
@@ -72,7 +72,7 @@ class _HomePageState extends State<HomePage>
   void dispose() {
     super.dispose();
     WidgetsBinding.instance.removeObserver(this);
-    Providers.server.closeServer();
+    Pros.server.closeServer();
     _pageController.dispose();
   }
 
@@ -84,20 +84,20 @@ class _HomePageState extends State<HomePage>
     switch (state) {
       case AppLifecycleState.resumed:
         _auth();
-        if (!Providers.server.isAutoRefreshOn) {
-          Providers.server.startAutoRefresh();
+        if (!Pros.server.isAutoRefreshOn) {
+          Pros.server.startAutoRefresh();
         }
         updateHomeWidget();
         break;
       case AppLifecycleState.paused:
         // Keep running in background on Android device
         if (isAndroid && Stores.setting.bgRun.fetch()) {
-          if (Providers.app.moveBg) {
+          if (Pros.app.moveBg) {
             BgRunMC.moveToBg();
           }
         } else {
-          Providers.server.setDisconnected();
-          Providers.server.stopAutoRefresh();
+          //Pros.server.setDisconnected();
+          Pros.server.stopAutoRefresh();
         }
         break;
       default:
@@ -111,7 +111,16 @@ class _HomePageState extends State<HomePage>
 
     return Scaffold(
       drawer: _buildDrawer(),
-      appBar: _buildAppBar(),
+      appBar: CustomAppBar(
+        title: const Text(BuildData.name),
+        actions: <Widget>[
+          IconButton(
+            icon: const Icon(Icons.developer_mode, size: 23),
+            tooltip: l10n.debug,
+            onPressed: () => AppRoute.debug().go(context),
+          ),
+        ],
+      ),
       body: PageView.builder(
         controller: _pageController,
         itemCount: AppTab.values.length,
@@ -126,37 +135,6 @@ class _HomePageState extends State<HomePage>
         listenable: _selectIndex,
         build: _buildBottomBar,
       ),
-    );
-  }
-
-  PreferredSizeWidget _buildAppBar() {
-    final actions = <Widget>[
-      IconButton(
-        icon: const Icon(Icons.developer_mode, size: 23),
-        tooltip: l10n.debug,
-        onPressed: () => AppRoute.debug().go(context),
-      ),
-    ];
-    if (isDesktop && _selectIndex.value == AppTab.server.index) {
-      actions.add(
-        ValueBuilder(
-          listenable: _selectIndex,
-          build: () {
-            if (_selectIndex.value != AppTab.server.index) {
-              return const SizedBox();
-            }
-            return IconButton(
-              icon: const Icon(Icons.refresh, size: 23),
-              tooltip: 'Refresh',
-              onPressed: () => Providers.server.refreshData(onlyFailed: true),
-            );
-          },
-        ),
-      );
-    }
-    return CustomAppBar(
-      title: const Text(BuildData.name),
-      actions: actions,
     );
   }
 
@@ -185,15 +163,15 @@ class _HomePageState extends State<HomePage>
           label: l10n.server,
           selectedIcon: const Icon(Icons.cloud),
         ),
+        const NavigationDestination(
+          icon: Icon(Icons.terminal_outlined),
+          label: 'SSH',
+          selectedIcon: Icon(Icons.terminal),
+        ),
         NavigationDestination(
           icon: const Icon(Icons.snippet_folder_outlined),
           label: l10n.snippet,
           selectedIcon: const Icon(Icons.snippet_folder),
-        ),
-        const NavigationDestination(
-          icon: Icon(Icons.network_check_outlined),
-          label: 'Ping',
-          selectedIcon: Icon(Icons.network_check),
         ),
       ],
     );
@@ -256,7 +234,7 @@ class _HomePageState extends State<HomePage>
             title: Text('${l10n.about} & ${l10n.feedback}'),
             onTap: _showAboutDialog,
           )
-        ].map((e) => RoundRectCard(e)).toList(),
+        ].map((e) => CardX(e)).toList(),
       ),
     );
   }
@@ -343,8 +321,8 @@ class _HomePageState extends State<HomePage>
     }
     updateHomeWidget();
     await GetIt.I.allReady();
-    await Providers.server.loadLocalData();
-    await Providers.server.refreshData();
+    await Pros.server.load();
+    await Pros.server.refreshData();
     if (!Analysis.enabled) {
       Analysis.init();
     }
@@ -366,7 +344,7 @@ class _HomePageState extends State<HomePage>
       text: text,
       langCode: 'json',
       title: l10n.setting,
-    ).go(context);
+    ).go<String>(context);
     if (result == null) {
       return;
     }

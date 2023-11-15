@@ -1,15 +1,79 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:toolbox/data/res/path.dart';
+
+class SecureStore {
+  SecureStore._();
+
+  static const _secureStorage = FlutterSecureStorage();
+
+  static HiveAesCipher? _cipher;
+
+  static const _hiveKey = 'hive_key';
+
+  static Future<void> init() async {
+    final encryptionKeyString = await _secureStorage.read(key: _hiveKey);
+    if (encryptionKeyString == null) {
+      final key = Hive.generateSecureKey();
+      await _secureStorage.write(
+        key: _hiveKey,
+        value: base64UrlEncode(key),
+      );
+    }
+    final key = await _secureStorage.read(key: _hiveKey);
+    if (key == null) {
+      throw Exception('Failed to init SecureStore');
+    }
+    final encryptionKeyUint8List = base64Url.decode(key);
+    _cipher = HiveAesCipher(encryptionKeyUint8List);
+  }
+}
 
 class PersistentStore<E> {
-  late Box<E> box;
+  late final Box<E> box;
 
-  Future<PersistentStore<E>> init({String boxName = 'defaultBox'}) async {
-    box = await Hive.openBox(boxName);
-    return this;
+  final String boxName;
+
+  PersistentStore(this.boxName);
+
+  Future<void> init() async => box = await Hive.openBox(
+        boxName,
+        encryptionCipher: SecureStore._cipher,
+      );
+
+  /// Get all db filenames.
+  ///
+  /// - [suffixs] defaults to ['.hive']
+  ///
+  /// - If [hideSetting] is true, hide 'setting.hive'
+  static Future<List<String>> getFileNames({
+    bool hideSetting = false,
+    List<String>? suffixs,
+  }) async {
+    final docPath = await Paths.doc;
+    final dir = Directory(docPath);
+    final files = await dir.list().toList();
+    if (suffixs != null) {
+      files.removeWhere((e) => !suffixs.contains(e.path.split('.').last));
+    } else {
+      // filter out non-hive(db) files
+      files.removeWhere((e) => !e.path.endsWith('.hive'));
+    }
+    if (hideSetting) {
+      files.removeWhere((e) => e.path.endsWith('setting.hive'));
+    }
+    final paths =
+        files.map((e) => e.path.replaceFirst('$docPath/', '')).toList();
+    return paths;
   }
+
+  /// Convert db to json
+  Map<String, dynamic> toJson() => {for (var e in box.keys) e: box.get(e)};
 }
 
 abstract class StorePropertyBase<T> {
@@ -33,7 +97,11 @@ class StoreProperty<T> implements StorePropertyBase<T> {
 
   @override
   T fetch() {
-    return _box.get(_key, defaultValue: defaultValue)!;
+    final stored = _box.get(_key);
+    if (stored == null || stored is! T) {
+      return defaultValue;
+    }
+    return stored;
   }
 
   @override

@@ -3,20 +3,19 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:r_upgrade/r_upgrade.dart';
-import 'package:toolbox/core/extension/context/common.dart';
 import 'package:toolbox/core/extension/context/dialog.dart';
 import 'package:toolbox/core/extension/context/locale.dart';
 import 'package:toolbox/core/extension/context/snackbar.dart';
+import 'package:toolbox/core/utils/misc.dart';
 import 'package:toolbox/core/utils/platform/base.dart';
+import 'package:toolbox/core/utils/ui.dart';
 import 'package:toolbox/data/model/app/update.dart';
+import 'package:toolbox/data/res/build_data.dart';
 import 'package:toolbox/data/res/logger.dart';
 import 'package:toolbox/data/res/path.dart';
 import 'package:toolbox/data/res/provider.dart';
-
-import '../data/res/build_data.dart';
-import '../data/service/app.dart';
-import '../locator.dart';
-import 'utils/ui.dart';
+import 'package:toolbox/data/service/app.dart';
+import 'package:toolbox/locator.dart';
 
 Future<bool> isFileAvailable(String url) async {
   try {
@@ -39,7 +38,7 @@ Future<void> doUpdate(BuildContext context, {bool force = false}) async {
     return;
   }
 
-  Providers.app.newestBuild = newest;
+  Pros.app.newestBuild = newest;
 
   if (!force && newest <= BuildData.build) {
     Loggers.app.info('Update ignored: ${BuildData.build} >= $newest');
@@ -49,7 +48,7 @@ Future<void> doUpdate(BuildContext context, {bool force = false}) async {
 
   final url = update.url.current!;
 
-  if ((isAndroid || isMacOS) && !await isFileAvailable(url)) {
+  if (isFileUrl(url) && !await isFileAvailable(url)) {
     Loggers.app.warning('Update file not available');
     return;
   }
@@ -78,25 +77,18 @@ Future<void> doUpdate(BuildContext context, {bool force = false}) async {
 
 Future<void> _doUpdate(AppUpdate update, BuildContext context) async {
   final url = update.url.current;
-  if (url == null) return;
+  if (url == null) {
+    Loggers.app.warning('Update url not is null');
+    return;
+  }
 
   if (isAndroid) {
     final fileName = url.split('/').last;
     await RUpgrade.upgrade(url, fileName: fileName);
   } else if (isIOS) {
     await RUpgrade.upgradeFromAppStore('1586449703');
-  } else if (isMacOS) {
-    await openUrl(url);
   } else {
-    context.showRoundDialog(
-      child: Text(l10n.platformNotSupportUpdate),
-      actions: [
-        TextButton(
-          onPressed: () => context.pop(),
-          child: Text(l10n.ok),
-        )
-      ],
-    );
+    await openUrl(url);
   }
 }
 

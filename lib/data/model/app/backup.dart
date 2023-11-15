@@ -60,15 +60,20 @@ class Backup {
         spis = Stores.server.fetch(),
         snippets = Stores.snippet.fetch(),
         keys = Stores.key.fetch(),
-        dockerHosts = Stores.docker.fetchAll(),
+        dockerHosts = Stores.docker.toJson(),
         settings = Stores.setting.toJson();
 
-  static Future<void> backup() async {
-    final result = _diyEncrtpt(json.encode(Backup.loadFromStore()));
-    await File(await Paths.bak).writeAsString(result);
+  static Future<String> backup() async {
+    final result = _diyEncrypt(json.encode(Backup.loadFromStore()));
+    final path = await Paths.bak;
+    await File(path).writeAsString(result);
+    return path;
   }
 
   Future<void> restore() async {
+    for (final s in settings.keys) {
+      Stores.setting.box.put(s, settings[s]);
+    }
     for (final s in snippets) {
       Stores.snippet.put(s);
     }
@@ -90,7 +95,7 @@ class Backup {
       : this.fromJson(json.decode(_diyDecrypt(raw)));
 }
 
-String _diyEncrtpt(String raw) => json.encode(
+String _diyEncrypt(String raw) => json.encode(
       raw.codeUnits.map((e) => e * 2 + 1).toList(growable: false),
     );
 

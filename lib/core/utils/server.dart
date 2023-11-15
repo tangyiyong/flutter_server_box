@@ -44,33 +44,66 @@ String getPrivateKey(String id) {
 Future<SSHClient> genClient(
   ServerPrivateInfo spi, {
   void Function(GenSSHClientStatus)? onStatus,
+
+  /// Must pass this param when use multi-thread and key login
   String? privateKey,
-  Duration? timeout,
+
+  /// Must pass this param when use multi-thread and key login
+  String? jumpPrivateKey,
+  Duration timeout = const Duration(seconds: 5),
+
+  /// [ServerPrivateInfo] of the jump server
+  ///
+  /// Must pass this param when use multi-thread and key login
+  ServerPrivateInfo? jumpSpi,
 }) async {
   onStatus?.call(GenSSHClientStatus.socket);
-  late SSHSocket socket;
-  final duration = timeout ?? const Duration(seconds: 5);
-  try {
-    socket = await SSHSocket.connect(
-      spi.ip,
-      spi.port,
-      timeout: duration,
-    );
-  } catch (e) {
-    if (spi.alterUrl == null) rethrow;
+
+  final socket = await () async {
+    // Proxy
+    final jumpSpi_ = () {
+      // Multi-thread or key login
+      if (jumpSpi != null) return jumpSpi;
+      // Main thread
+      if (spi.jumpId != null) return Stores.server.box.get(spi.jumpId);
+    }();
+    if (jumpSpi_ != null) {
+      final jumpClient = await genClient(
+        jumpSpi_,
+        privateKey: jumpPrivateKey,
+        timeout: timeout,
+      );
+
+      return await jumpClient.forwardLocal(
+        spi.ip,
+        spi.port,
+      );
+    }
+
+    // Direct
     try {
-      final ipPort = spi.fromStringUrl();
-      socket = await SSHSocket.connect(
-        ipPort.ip,
-        ipPort.port,
-        timeout: duration,
+      return await SSHSocket.connect(
+        spi.ip,
+        spi.port,
+        timeout: timeout,
       );
     } catch (e) {
-      rethrow;
+      if (spi.alterUrl == null) rethrow;
+      try {
+        final ipPort = spi.fromStringUrl();
+        return await SSHSocket.connect(
+          ipPort.ip,
+          ipPort.port,
+          timeout: timeout,
+        );
+      } catch (e) {
+        rethrow;
+      }
     }
-  }
+  }();
 
-  if (spi.pubKeyId == null) {
+  final keyId = spi.keyId;
+  if (keyId == null) {
     onStatus?.call(GenSSHClientStatus.pwd);
     return SSHClient(
       socket,
@@ -78,7 +111,7 @@ Future<SSHClient> genClient(
       onPasswordRequest: () => spi.pwd,
     );
   }
-  privateKey ??= getPrivateKey(spi.pubKeyId!);
+  privateKey ??= getPrivateKey(keyId);
 
   onStatus?.call(GenSSHClientStatus.key);
   return SSHClient(

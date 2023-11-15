@@ -3,14 +3,9 @@ import '../server/system.dart';
 
 const seperator = 'SrvBoxSep';
 
+/// The suffix `\t` is for formatting
 const _cmdDivider = '\necho $seperator\n\t';
-
-const _serverBoxDir = r'$HOME/.config/server_box';
-
-/// Issue #159
-/// Use script commit count as version of shell script.
-/// So different version of app can run at the same time.
-const installShellPath = '$_serverBoxDir/mobile_v${BuildData.script}.sh';
+const _homeVar = '\$HOME';
 
 enum ShellFunc {
   status,
@@ -18,7 +13,33 @@ enum ShellFunc {
   process,
   shutdown,
   reboot,
+  suspend,
   ;
+
+  static const _srvBoxDir = '.config/server_box';
+  static const _scriptFile = 'mobile_v${BuildData.script}.sh';
+
+  /// Issue #159
+  ///
+  /// Use script commit count as version of shell script.
+  ///
+  /// So different version of app can run at the same time.
+  ///
+  /// **Can't** use it in SFTP, because SFTP can't recognize `$HOME`
+  static String getShellPath(String home) => '$home/$_srvBoxDir/$_scriptFile';
+
+  static const srvBoxDir = '$_homeVar/$_srvBoxDir';
+  static const _installShellPath = '$_homeVar/$_srvBoxDir/$_scriptFile';
+
+  /// Issue #168
+  /// Use `sh` for compatibility
+  static final installShellCmd = """
+mkdir -p $_homeVar/$_srvBoxDir
+cat << 'EOF' > $_installShellPath
+${ShellFunc.allScript}
+EOF
+chmod +x $_installShellPath
+""";
 
   String get flag {
     switch (this) {
@@ -32,10 +53,12 @@ enum ShellFunc {
         return 'sd';
       case ShellFunc.reboot:
         return 'r';
+      case ShellFunc.suspend:
+        return 'sp';
     }
   }
 
-  String get exec => 'sh $installShellPath -$flag';
+  String get exec => 'sh $_installShellPath -$flag';
 
   String get name {
     switch (this) {
@@ -51,10 +74,12 @@ enum ShellFunc {
         return 'ShutDown';
       case ShellFunc.reboot:
         return 'Reboot';
+      case ShellFunc.suspend:
+        return 'Suspend';
     }
   }
 
-  String get cmd {
+  String get _cmd {
     switch (this) {
       case ShellFunc.status:
         return '''
@@ -97,6 +122,13 @@ if [ "\$userId" = "0" ]; then
 else
 \tsudo -S reboot
 fi''';
+      case ShellFunc.suspend:
+        return '''
+if [ "\$userId" = "0" ]; then
+\tsystemctl suspend
+else
+\tsudo -S systemctl suspend
+fi''';
     }
   }
 
@@ -110,8 +142,8 @@ fi''';
 export LANG=en_US.UTF-8
 
 # If macSign & bsdSign are both empty, then it's linux
-macSign=\$(uname 2>&1 | grep "Darwin")
-bsdSign=\$(uname 2>&1 | grep "BSD")
+macSign=\$(uname -a 2>&1 | grep "Darwin")
+bsdSign=\$(uname -a 2>&1 | grep "BSD")
 
 # Link /bin/sh to busybox?
 isBusybox=\$(ls -l /bin/sh | grep "busybox")
@@ -123,7 +155,7 @@ userId=\$(id -u)
     for (final func in values) {
       sb.write('''
 ${func.name}() {
-${func.cmd.split('\n').map((e) => '\t$e').join('\n')}
+${func._cmd.split('\n').map((e) => '\t$e').join('\n')}
 }
 
 ''');
@@ -167,7 +199,7 @@ enum StatusCmdType {
   tempType,
   tempVal,
   host,
-  ;
+  diskio;
 }
 
 /// Cmds for linux server
@@ -180,10 +212,11 @@ const _statusCmds = [
   'uptime',
   'cat /proc/net/snmp',
   'df -h',
-  'cat /proc/meminfo',
+  "cat /proc/meminfo | grep -E 'Mem|Swap'",
   'cat /sys/class/thermal/thermal_zone*/type',
   'cat /sys/class/thermal/thermal_zone*/temp',
   'hostname',
+  'cat /proc/diskstats',
 ];
 
 enum DockerCmdType {
@@ -228,13 +261,3 @@ const _bsdStatusCmd = [
   //'sysctl -a | grep temperature',
   'hostname',
 ];
-
-/// Issue #168
-/// Use `sh` for compatibility
-final installShellCmd = """
-mkdir -p $_serverBoxDir
-cat << 'EOF' > $installShellPath
-${ShellFunc.allScript}
-EOF
-chmod +x $installShellPath
-""";

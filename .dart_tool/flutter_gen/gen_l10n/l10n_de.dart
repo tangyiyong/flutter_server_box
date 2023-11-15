@@ -35,6 +35,11 @@ class SDe extends S {
   String get alterUrl => 'Url ändern';
 
   @override
+  String askContinue(Object msg) {
+    return '$msg, weiter?';
+  }
+
+  @override
   String get attention => 'Achtung';
 
   @override
@@ -137,7 +142,13 @@ class SDe extends S {
   String get delete => 'Löschen';
 
   @override
+  String get deleteScripts => 'Gleichzeitiges Löschen von Server-Skripten';
+
+  @override
   String get deleteServers => 'Batch-Löschung von Servern';
+
+  @override
+  String get dirEmpty => 'Stelle sicher, dass der Ordner leer ist.';
 
   @override
   String get disabled => 'Behinderte';
@@ -146,7 +157,13 @@ class SDe extends S {
   String get disconnected => 'Disconnected';
 
   @override
+  String get disk => 'Festplatte';
+
+  @override
   String get diskIgnorePath => 'Pfad für Datenträger ignorieren';
+
+  @override
+  String get displayName => 'Name anzeigen';
 
   @override
   String dl2Local(Object fileName) {
@@ -191,6 +208,9 @@ class SDe extends S {
 
   @override
   String get editor => 'Editor';
+
+  @override
+  String get editorHighlightTip => 'Die Leistung der aktuellen Codehervorhebung ist schlechter und kann zur Verbesserung optional ausgeschaltet werden.';
 
   @override
   String get encode => 'Encode';
@@ -274,6 +294,9 @@ class SDe extends S {
   String get goto => 'Pfad öffnen';
 
   @override
+  String get highlight => 'Code highlight';
+
+  @override
   String get homeWidgetUrlConfig => 'Home-Widget-Link konfigurieren';
 
   @override
@@ -323,6 +346,9 @@ class SDe extends S {
   String get isBusy => 'Is busy now';
 
   @override
+  String get jumpServer => 'Server springen';
+
+  @override
   String get keepForeground => 'Stelle sicher, dass die App geöffnet bleibt.';
 
   @override
@@ -356,6 +382,9 @@ class SDe extends S {
   String get loadingFiles => 'Lädt Dateien...';
 
   @override
+  String get location => 'Standort';
+
+  @override
   String get log => 'Log';
 
   @override
@@ -365,6 +394,9 @@ class SDe extends S {
   String madeWithLove(Object myGithub) {
     return 'Erstellt mit ❤️ von $myGithub';
   }
+
+  @override
+  String get manual => 'Handbuch';
 
   @override
   String get max => 'max';
@@ -382,9 +414,6 @@ class SDe extends S {
   String get mission => 'Mission';
 
   @override
-  String get moveOutServerFuncBtns => 'Position der Server-Funktionsschaltfläche';
-
-  @override
   String get moveOutServerFuncBtnsHelp => 'Ein: kann unter jeder Karte auf der Registerkarte \"Server\" angezeigt werden. Aus: kann oben auf der Seite \"Serverdetails\" angezeigt werden.';
 
   @override
@@ -395,6 +424,9 @@ class SDe extends S {
 
   @override
   String get needRestart => 'App muss neugestartet werden';
+
+  @override
+  String get net => 'Netz';
 
   @override
   String get netViewType => 'Netzwerkansicht Typ';
@@ -446,6 +478,12 @@ class SDe extends S {
 
   @override
   String get open => 'Öffnen';
+
+  @override
+  String get openLastPath => 'Öffnen Sie den letzten Pfad';
+
+  @override
+  String get openLastPathTip => 'Verschiedene Server haben unterschiedliche Einträge, und der Eintrag ist der Pfad zum Ausgang';
 
   @override
   String get paste => 'Einfügen';
@@ -504,6 +542,12 @@ class SDe extends S {
   String get pwd => 'Passwort';
 
   @override
+  String get read => 'Lesen';
+
+  @override
+  String get reboot => 'Neustart';
+
+  @override
   String get remotePath => 'Entfernte Pfade';
 
   @override
@@ -524,11 +568,6 @@ class SDe extends S {
   String get restoreSuccess => 'Wiederherstellung erfolgreich. App neustarten um Änderungen anzuwenden.';
 
   @override
-  String restoreSureWithDate(Object date) {
-    return 'Bist du sicher, dass du das Backup vom $date wiederherstellen möchtest?';
-  }
-
-  @override
   String get result => 'Result';
 
   @override
@@ -547,10 +586,16 @@ class SDe extends S {
   String get second => 's';
 
   @override
+  String get sequence => 'Sequenz';
+
+  @override
   String get server => 'Server';
 
   @override
   String get serverDetailOrder => 'Reihenfolge der Widgets auf der Detailseite';
+
+  @override
+  String get serverFuncBtns => 'Server-Funktionsschaltflächen';
 
   @override
   String get serverOrder => 'Server-Bestellung';
@@ -580,13 +625,16 @@ class SDe extends S {
   String get sftpDlPrepare => 'Verbindung vorbereiten...';
 
   @override
-  String get sftpRmrfDirSummary => 'Verwenden Sie \"rm -rf\", um das Verzeichnis in SFTP zu löschen.';
+  String get sftpRmrDirSummary => 'Verwenden Sie \"rm -r\", um das Verzeichnis in SFTP zu löschen.';
 
   @override
   String get sftpSSHConnected => 'SFTP Verbunden';
 
   @override
   String get showDistLogo => 'Distributionslogo anzeigen';
+
+  @override
+  String get shutdown => 'Abschaltung';
 
   @override
   String get snippet => 'Snippet';
@@ -620,31 +668,22 @@ class SDe extends S {
   String get success => 'Erfolgreich';
 
   @override
-  String sureDelete(Object name) {
-    return 'Soll [$name] wirklich gelöscht werden?';
-  }
+  String get suspend => 'Suspend';
 
   @override
-  String get sureDirEmpty => 'Stelle sicher, dass der Ordner leer ist.';
+  String get suspendTip => 'Die Suspend-Funktion erfordert Root-Rechte und systemd-Unterstützung.';
 
   @override
-  String get sureNoPwd => 'Bist du sicher, dass du kein Passwort verwenden willst?';
-
-  @override
-  String sureStop(Object item) {
-    return 'Sind Sie sicher, dass Sie [$item] stoppen möchten?';
-  }
-
-  @override
-  String sureToDeleteServer(Object server) {
-    return 'Bist du sicher, dass du [$server] löschen willst?';
-  }
+  String get syncTip => 'Damit einige Änderungen wirksam werden, kann ein Neustart erforderlich sein.';
 
   @override
   String get system => 'Systeme';
 
   @override
   String get tag => 'Tags';
+
+  @override
+  String get temperature => 'Temperatur';
 
   @override
   String get terminal => 'Terminal';
@@ -705,6 +744,9 @@ class SDe extends S {
   String get urlOrJson => 'URL oder JSON';
 
   @override
+  String get useNoPwd => 'Es wird kein Passwort verwendet.';
+
+  @override
   String get user => 'Benutzer';
 
   @override
@@ -742,4 +784,7 @@ class SDe extends S {
 
   @override
   String get willTakEeffectImmediately => 'Wird sofort angewendet';
+
+  @override
+  String get write => 'Schreiben';
 }

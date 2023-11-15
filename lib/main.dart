@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -8,12 +10,12 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:toolbox/core/channel/bg_run.dart';
 import 'package:toolbox/core/utils/platform/base.dart';
+import 'package:toolbox/data/res/logger.dart';
 import 'package:toolbox/data/res/provider.dart';
 import 'package:toolbox/data/res/store.dart';
 
 import 'app.dart';
 import 'core/analysis.dart';
-import 'core/utils/icloud.dart';
 import 'core/utils/ui.dart';
 import 'data/model/app/net_view.dart';
 import 'data/model/server/private_key_info.dart';
@@ -27,7 +29,6 @@ import 'data/provider/private_key.dart';
 import 'data/provider/server.dart';
 import 'data/provider/sftp.dart';
 import 'data/provider/snippet.dart';
-import 'data/provider/virtual_keyboard.dart';
 import 'data/res/color.dart';
 import 'locator.dart';
 import 'view/widget/custom_appbar.dart';
@@ -43,7 +44,6 @@ Future<void> main() async {
           ChangeNotifierProvider(create: (_) => locator<DockerProvider>()),
           ChangeNotifierProvider(create: (_) => locator<ServerProvider>()),
           ChangeNotifierProvider(create: (_) => locator<SnippetProvider>()),
-          ChangeNotifierProvider(create: (_) => locator<VirtKeyProvider>()),
           ChangeNotifierProvider(create: (_) => locator<PrivateKeyProvider>()),
           ChangeNotifierProvider(create: (_) => locator<SftpProvider>()),
         ],
@@ -62,7 +62,10 @@ void _runInZone(void Function() body) {
 
   runZonedGuarded(
     body,
-    (obj, trace) => Analysis.recordException(trace),
+    (obj, trace) {
+      Analysis.recordException(trace);
+      Loggers.root.warning(obj);
+    },
     zoneSpecification: zoneSpec,
   );
 }
@@ -71,7 +74,7 @@ Future<void> initApp() async {
   await _initMacOSWindow();
 
   // Base of all data.
-  await _initHive();
+  await _initDb();
   await setupLocator();
   _setupLogger();
   _setupProviders();
@@ -79,9 +82,6 @@ Future<void> initApp() async {
   // Load font
   primaryColor = Color(Stores.setting.primaryColor.fetch());
   loadFontFile(Stores.setting.fontPath.fetch());
-
-  // Don't call it via `await`, it will block the main thread.
-  if (Stores.setting.icloudSync.fetch()) ICloud.syncDb();
 
   if (isAndroid) {
     // Only start service when [bgRun] is true.
@@ -94,26 +94,28 @@ Future<void> initApp() async {
 }
 
 void _setupProviders() {
-  Providers.snippet.loadData();
-  Providers.key.loadData();
+  Pros.snippet.load();
+  Pros.key.load();
 }
 
-Future<void> _initHive() async {
+Future<void> _initDb() async {
+  // await SecureStore.init();
   await Hive.initFlutter();
-  // 以 typeId 为顺序
-  Hive.registerAdapter(PrivateKeyInfoAdapter());
-  Hive.registerAdapter(SnippetAdapter());
-  Hive.registerAdapter(ServerPrivateInfoAdapter());
-  Hive.registerAdapter(VirtKeyAdapter());
-  Hive.registerAdapter(NetViewTypeAdapter());
+  // Ordered by typeId
+  Hive.registerAdapter(PrivateKeyInfoAdapter()); // 1
+  Hive.registerAdapter(SnippetAdapter()); // 2
+  Hive.registerAdapter(ServerPrivateInfoAdapter()); // 3
+  Hive.registerAdapter(VirtKeyAdapter()); // 4
+  Hive.registerAdapter(NetViewTypeAdapter()); // 5
 }
 
 void _setupLogger() {
   Logger.root.level = Level.ALL;
   Logger.root.onRecord.listen((record) {
-    Providers.debug.addLog(record);
-    // ignore: avoid_print
+    Pros.debug.addLog(record);
     print(record);
+    if (record.error != null) print(record.error);
+    if (record.stackTrace != null) print(record.stackTrace);
   });
 }
 

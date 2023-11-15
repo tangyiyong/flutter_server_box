@@ -35,6 +35,11 @@ class SZh extends S {
   String get alterUrl => '备选链接';
 
   @override
+  String askContinue(Object msg) {
+    return '$msg，继续吗？';
+  }
+
+  @override
   String get attention => '注意';
 
   @override
@@ -137,7 +142,13 @@ class SZh extends S {
   String get delete => '删除';
 
   @override
+  String get deleteScripts => '同时删除服务器脚本';
+
+  @override
   String get deleteServers => '批量删除服务器';
+
+  @override
+  String get dirEmpty => '请确保文件夹为空';
 
   @override
   String get disabled => '已禁用';
@@ -146,7 +157,13 @@ class SZh extends S {
   String get disconnected => '连接断开';
 
   @override
+  String get disk => '硬盘';
+
+  @override
   String get diskIgnorePath => '忽略的磁盘路径';
+
+  @override
+  String get displayName => '显示名称';
 
   @override
   String dl2Local(Object fileName) {
@@ -191,6 +208,9 @@ class SZh extends S {
 
   @override
   String get editor => '编辑器';
+
+  @override
+  String get editorHighlightTip => '目前的代码高亮性能较为糟糕，可以选择关闭以改善。';
 
   @override
   String get encode => '编码';
@@ -274,6 +294,9 @@ class SZh extends S {
   String get goto => '前往';
 
   @override
+  String get highlight => '代码高亮';
+
+  @override
   String get homeWidgetUrlConfig => '桌面部件链接配置';
 
   @override
@@ -323,6 +346,9 @@ class SZh extends S {
   String get isBusy => '当前正忙';
 
   @override
+  String get jumpServer => '跳板服务器';
+
+  @override
   String get keepForeground => '请保持应用处于前台！';
 
   @override
@@ -356,6 +382,9 @@ class SZh extends S {
   String get loadingFiles => '正在加载目录。。。';
 
   @override
+  String get location => '位置';
+
+  @override
   String get log => '日志';
 
   @override
@@ -365,6 +394,9 @@ class SZh extends S {
   String madeWithLove(Object myGithub) {
     return '用❤️制作 by $myGithub';
   }
+
+  @override
+  String get manual => '手动';
 
   @override
   String get max => '最大';
@@ -382,9 +414,6 @@ class SZh extends S {
   String get mission => '任务';
 
   @override
-  String get moveOutServerFuncBtns => '服务器功能按钮位置';
-
-  @override
   String get moveOutServerFuncBtnsHelp => '开启：可以在服务器 Tab 页的每个卡片下方显示。关闭：在服务器详情页顶部显示。';
 
   @override
@@ -395,6 +424,9 @@ class SZh extends S {
 
   @override
   String get needRestart => '需要重启 App';
+
+  @override
+  String get net => '网络';
 
   @override
   String get netViewType => '网络视图类型';
@@ -446,6 +478,12 @@ class SZh extends S {
 
   @override
   String get open => '打开';
+
+  @override
+  String get openLastPath => '打开上次的路径';
+
+  @override
+  String get openLastPathTip => '不同的服务器会有不同的记录，且记录的是退出时的路径';
 
   @override
   String get paste => '粘贴';
@@ -504,6 +542,12 @@ class SZh extends S {
   String get pwd => '密码';
 
   @override
+  String get read => '读';
+
+  @override
+  String get reboot => '重启';
+
+  @override
   String get remotePath => '远端路径';
 
   @override
@@ -524,11 +568,6 @@ class SZh extends S {
   String get restoreSuccess => '恢复成功，需要重启App来应用更改';
 
   @override
-  String restoreSureWithDate(Object date) {
-    return '确定恢复 $date 的备份吗？';
-  }
-
-  @override
   String get result => '结果';
 
   @override
@@ -547,10 +586,16 @@ class SZh extends S {
   String get second => '秒';
 
   @override
+  String get sequence => '顺序';
+
+  @override
   String get server => '服务器';
 
   @override
   String get serverDetailOrder => '详情页部件顺序';
+
+  @override
+  String get serverFuncBtns => '服务器功能按钮';
 
   @override
   String get serverOrder => '服务器顺序';
@@ -580,13 +625,16 @@ class SZh extends S {
   String get sftpDlPrepare => '准备连接至服务器...';
 
   @override
-  String get sftpRmrfDirSummary => '在 SFTP 中使用 `rm -rf` 来删除文件夹';
+  String get sftpRmrDirSummary => '在 SFTP 中使用 `rm -r` 来删除文件夹';
 
   @override
   String get sftpSSHConnected => 'SFTP 已连接...';
 
   @override
   String get showDistLogo => '显示发行版 Logo';
+
+  @override
+  String get shutdown => '关机';
 
   @override
   String get snippet => '代码片段';
@@ -620,31 +668,22 @@ class SZh extends S {
   String get success => '成功';
 
   @override
-  String sureDelete(Object name) {
-    return '确定删除 [$name]？';
-  }
+  String get suspend => '挂起';
 
   @override
-  String get sureDirEmpty => '请确保文件夹为空';
+  String get suspendTip => 'suspend 功能需要 root 权限及 systemd 支持。';
 
   @override
-  String get sureNoPwd => '确认使用无密码？';
-
-  @override
-  String sureStop(Object item) {
-    return '确定要停止 [$item] 吗？';
-  }
-
-  @override
-  String sureToDeleteServer(Object server) {
-    return '你确定要删除服务器 [$server] 吗？';
-  }
+  String get syncTip => '可能需要重新启动，某些更改才能生效。';
 
   @override
   String get system => '系统';
 
   @override
   String get tag => '标签';
+
+  @override
+  String get temperature => '温度';
 
   @override
   String get terminal => '终端';
@@ -705,6 +744,9 @@ class SZh extends S {
   String get urlOrJson => '链接或JSON';
 
   @override
+  String get useNoPwd => '将会使用无密码。';
+
+  @override
   String get user => '用户';
 
   @override
@@ -742,6 +784,9 @@ class SZh extends S {
 
   @override
   String get willTakEeffectImmediately => '更改将会立即生效';
+
+  @override
+  String get write => '写';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -777,6 +822,11 @@ class SZhTw extends SZh {
 
   @override
   String get alterUrl => '備選鏈接';
+
+  @override
+  String askContinue(Object msg) {
+    return '$msg，繼續嗎？';
+  }
 
   @override
   String get attention => '注意';
@@ -881,7 +931,13 @@ class SZhTw extends SZh {
   String get delete => '刪除';
 
   @override
+  String get deleteScripts => '同時刪除服務器腳本';
+
+  @override
   String get deleteServers => '批量刪除服務器';
+
+  @override
+  String get dirEmpty => '請確保文件夾為空';
 
   @override
   String get disabled => '已禁用';
@@ -890,7 +946,13 @@ class SZhTw extends SZh {
   String get disconnected => '連接斷開';
 
   @override
+  String get disk => '硬盤';
+
+  @override
   String get diskIgnorePath => '忽略的磁盤路徑';
+
+  @override
+  String get displayName => '顯示名稱';
 
   @override
   String dl2Local(Object fileName) {
@@ -935,6 +997,9 @@ class SZhTw extends SZh {
 
   @override
   String get editor => '編輯器';
+
+  @override
+  String get editorHighlightTip => '目前的代碼高亮性能較為糟糕，可以選擇關閉以改善。';
 
   @override
   String get encode => '編碼';
@@ -1018,6 +1083,9 @@ class SZhTw extends SZh {
   String get goto => '前往';
 
   @override
+  String get highlight => '代碼高亮';
+
+  @override
   String get homeWidgetUrlConfig => '桌面部件鏈接配置';
 
   @override
@@ -1067,6 +1135,9 @@ class SZhTw extends SZh {
   String get isBusy => '當前正忙';
 
   @override
+  String get jumpServer => '跳板服務器';
+
+  @override
   String get keepForeground => '請保持應用處於前台！';
 
   @override
@@ -1100,6 +1171,9 @@ class SZhTw extends SZh {
   String get loadingFiles => '正在加載目錄。。。';
 
   @override
+  String get location => '位置';
+
+  @override
   String get log => '日誌';
 
   @override
@@ -1109,6 +1183,9 @@ class SZhTw extends SZh {
   String madeWithLove(Object myGithub) {
     return '用❤️製作 by $myGithub';
   }
+
+  @override
+  String get manual => '手動';
 
   @override
   String get max => '最大';
@@ -1126,9 +1203,6 @@ class SZhTw extends SZh {
   String get mission => '任務';
 
   @override
-  String get moveOutServerFuncBtns => '服務器功能按鈕位置';
-
-  @override
   String get moveOutServerFuncBtnsHelp => '開啟：可以在服務器 Tab 頁的每個卡片下方顯示。關閉：在服務器詳情頁頂部顯示。';
 
   @override
@@ -1139,6 +1213,9 @@ class SZhTw extends SZh {
 
   @override
   String get needRestart => '需要重啓 App';
+
+  @override
+  String get net => '網絡';
 
   @override
   String get netViewType => '網絡視圖類型';
@@ -1190,6 +1267,12 @@ class SZhTw extends SZh {
 
   @override
   String get open => '打開';
+
+  @override
+  String get openLastPath => '打開上次的路徑';
+
+  @override
+  String get openLastPathTip => '不同的服務器會有不同的記錄，且記錄的是退出時的路徑';
 
   @override
   String get paste => '貼上';
@@ -1248,6 +1331,12 @@ class SZhTw extends SZh {
   String get pwd => '密碼';
 
   @override
+  String get read => '读';
+
+  @override
+  String get reboot => '重启';
+
+  @override
   String get remotePath => '遠端路徑';
 
   @override
@@ -1268,11 +1357,6 @@ class SZhTw extends SZh {
   String get restoreSuccess => '恢復成功，需要重啓App來應用更改';
 
   @override
-  String restoreSureWithDate(Object date) {
-    return '確定恢復 $date 的備份嗎？';
-  }
-
-  @override
   String get result => '結果';
 
   @override
@@ -1291,10 +1375,16 @@ class SZhTw extends SZh {
   String get second => '秒';
 
   @override
+  String get sequence => '順序';
+
+  @override
   String get server => '服務器';
 
   @override
   String get serverDetailOrder => '詳情頁部件順序';
+
+  @override
+  String get serverFuncBtns => '服務器功能按鈕';
 
   @override
   String get serverOrder => '服務器順序';
@@ -1324,13 +1414,16 @@ class SZhTw extends SZh {
   String get sftpDlPrepare => '準備連接至服務器...';
 
   @override
-  String get sftpRmrfDirSummary => '在 SFTP 中使用 `rm -rf` 來刪除文件夾';
+  String get sftpRmrDirSummary => '在 SFTP 中使用 `rm -r` 來刪除文件夾';
 
   @override
   String get sftpSSHConnected => 'SFTP 已連接...';
 
   @override
   String get showDistLogo => '顯示發行版 Logo';
+
+  @override
+  String get shutdown => '关机';
 
   @override
   String get snippet => '程式片段';
@@ -1364,31 +1457,22 @@ class SZhTw extends SZh {
   String get success => '成功';
 
   @override
-  String sureDelete(Object name) {
-    return '確定刪除 [$name]？';
-  }
+  String get suspend => '挂起';
 
   @override
-  String get sureDirEmpty => '請確保文件夾為空';
+  String get suspendTip => 'suspend 功能需要 root 權限及 systemd 支持。';
 
   @override
-  String get sureNoPwd => '確認使用無密碼？';
-
-  @override
-  String sureStop(Object item) {
-    return '確定要停止 [$item] 嗎？';
-  }
-
-  @override
-  String sureToDeleteServer(Object server) {
-    return '你確定要刪除服務器 [$server] 嗎？';
-  }
+  String get syncTip => '可能需要重新啟動，某些更改才能生效。';
 
   @override
   String get system => '系統';
 
   @override
   String get tag => '标签';
+
+  @override
+  String get temperature => '溫度';
 
   @override
   String get terminal => '终端機';
@@ -1449,6 +1533,9 @@ class SZhTw extends SZh {
   String get urlOrJson => '鏈接或JSON';
 
   @override
+  String get useNoPwd => '将使用無密碼。';
+
+  @override
   String get user => '用戶';
 
   @override
@@ -1486,4 +1573,7 @@ class SZhTw extends SZh {
 
   @override
   String get willTakEeffectImmediately => '更改將會立即生效';
+
+  @override
+  String get write => '写';
 }

@@ -1,6 +1,6 @@
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:toolbox/core/extension/context/locale.dart';
-import 'package:toolbox/data/model/server/server_status.dart';
+import 'package:toolbox/data/model/server/server.dart';
 
 part 'net_view.g.dart';
 
@@ -13,6 +13,17 @@ enum NetViewType {
   @HiveField(2)
   traffic;
 
+  NetViewType get next {
+    switch (this) {
+      case conn:
+        return speed;
+      case speed:
+        return traffic;
+      case traffic:
+        return conn;
+    }
+  }
+
   String get toStr {
     switch (this) {
       case NetViewType.conn:
@@ -24,22 +35,22 @@ enum NetViewType {
     }
   }
 
-  NetViewData build(ServerStatus ss) {
+  (String, String) build(ServerStatus ss) {
     switch (this) {
       case NetViewType.conn:
-        return NetViewData(
-          'Conn:\n${ss.tcp.maxConn}',
-          'Fail:\n${ss.tcp.fail}',
+        return (
+          '${l10n.conn}:\n${ss.tcp.maxConn}',
+          '${l10n.failed}:\n${ss.tcp.fail}',
         );
       case NetViewType.speed:
-        return NetViewData(
-          'In:\n${ss.netSpeed.speedIn(all: true)}',
-          'Out:\n${ss.netSpeed.speedOut(all: true)}',
+        return (
+          '↓:\n${ss.netSpeed.speedIn(all: true)}',
+          '↑:\n${ss.netSpeed.speedOut(all: true)}',
         );
       case NetViewType.traffic:
-        return NetViewData(
-          'In:\n${ss.netSpeed.sizeIn(all: true)}',
-          'Out:\n${ss.netSpeed.sizeOut(all: true)}',
+        return (
+          '↓:\n${ss.netSpeed.sizeIn(all: true)}',
+          '↑:\n${ss.netSpeed.sizeOut(all: true)}',
         );
     }
   }
@@ -65,11 +76,4 @@ enum NetViewType {
         return NetViewType.speed;
     }
   }
-}
-
-class NetViewData {
-  final String up;
-  final String down;
-
-  NetViewData(this.up, this.down);
 }

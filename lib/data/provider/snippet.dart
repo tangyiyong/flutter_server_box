@@ -13,7 +13,7 @@ class SnippetProvider extends ChangeNotifier {
   final _tags = <String>[];
   List<String> get tags => _tags;
 
-  void loadData() {
+  void load() {
     _snippets = Stores.snippet.fetch();
     final order = Stores.setting.snippetOrder.fetch();
     if (order.isNotEmpty) {
@@ -26,17 +26,7 @@ class SnippetProvider extends ChangeNotifier {
         Stores.setting.snippetOrder.put(order);
       }
     }
-    _addInternal();
     _updateTags();
-  }
-
-  void _addInternal() {
-    if (!Stores.setting.fTISBM.fetch()) {
-      return;
-    }
-    _snippets.add(installSBM);
-    Stores.snippet.put(installSBM);
-    Stores.setting.fTISBM.put(false);
   }
 
   void _updateTags() {

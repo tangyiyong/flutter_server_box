@@ -7,7 +7,7 @@ import 'package:toolbox/core/extension/context/dialog.dart';
 import 'package:toolbox/core/extension/context/locale.dart';
 import 'package:toolbox/core/extension/context/snackbar.dart';
 import 'package:toolbox/core/extension/uint8list.dart';
-import 'package:toolbox/core/utils/misc.dart';
+import 'package:toolbox/core/utils/share.dart';
 import 'package:toolbox/data/res/store.dart';
 
 import '../../data/model/app/shell_func.dart';
@@ -15,7 +15,7 @@ import '../../data/model/server/proc.dart';
 import '../../data/model/server/server_private_info.dart';
 import '../../data/res/ui.dart';
 import '../widget/custom_appbar.dart';
-import '../widget/round_rect_card.dart';
+import '../widget/cardx.dart';
 import '../widget/two_line_text.dart';
 
 class ProcessPage extends StatefulWidget {
@@ -111,7 +111,7 @@ class _ProcessPageState extends State<ProcessPage> {
           child: SingleChildScrollView(child: Text(_result.error!)),
           actions: [
             TextButton(
-              onPressed: () => copy2Clipboard(_result.error!),
+              onPressed: () => Shares.copy(_result.error!),
               child: Text(l10n.copy),
             ),
           ],
@@ -142,7 +142,7 @@ class _ProcessPageState extends State<ProcessPage> {
     final leading = proc.user == null
         ? Text(proc.pid.toString())
         : TwoLineText(up: proc.pid.toString(), down: proc.user!);
-    return RoundRectCard(
+    return CardX(
       ListTile(
         leading: SizedBox(
           width: _media.size.width / 6,
@@ -160,7 +160,9 @@ class _ProcessPageState extends State<ProcessPage> {
         onLongPress: () {
           context.showRoundDialog(
             title: Text(l10n.attention),
-            child: Text(l10n.sureStop(proc.pid)),
+            child: Text(l10n.askContinue(
+              '${l10n.stop} ${l10n.process}(${proc.pid})',
+            )),
             actions: [
               TextButton(
                 onPressed: () async {

@@ -13,10 +13,10 @@ import 'package:toolbox/data/res/logger.dart';
 import 'package:toolbox/data/res/misc.dart';
 import 'package:toolbox/data/res/provider.dart';
 import 'package:toolbox/data/res/store.dart';
-import 'package:toolbox/view/widget/round_rect_card.dart';
+import 'package:toolbox/view/widget/omit_start_text.dart';
+import 'package:toolbox/view/widget/cardx.dart';
 
 import '../../../core/extension/numx.dart';
-import '../../../core/extension/stringx.dart';
 import '../../../core/route.dart';
 import '../../../core/utils/misc.dart';
 import '../../../data/model/server/server_private_info.dart';
@@ -113,7 +113,7 @@ class _SftpPageState extends State<SftpPage> with AfterLayoutMixin {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            (_status.path?.path ?? l10n.loadingFiles).omitStartStr(),
+            OmitStartText(_status.path?.path ?? l10n.loadingFiles),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: children,
@@ -162,7 +162,7 @@ class _SftpPageState extends State<SftpPage> with AfterLayoutMixin {
             context.showSnackBar('remote path is null');
             return;
           }
-          Providers.sftp.add(
+          Pros.sftp.add(
             SftpReq(
               widget.spi,
               '$remotePath/${path.split('/').last}',
@@ -208,9 +208,9 @@ class _SftpPageState extends State<SftpPage> with AfterLayoutMixin {
               if (!Stores.setting.recordHistory.fetch()) {
                 return [];
               }
-              return Stores.history.sftpPath.all.where(
-                (element) => element.contains(val.text),
-              );
+              return Stores.history.sftpGoPath.all.cast<String>().where(
+                    (element) => element.contains(val.text),
+                  );
             },
             fieldViewBuilder: (_, controller, node, __) {
               return Input(
@@ -232,7 +232,7 @@ class _SftpPageState extends State<SftpPage> with AfterLayoutMixin {
         _status.path?.update(p);
         final suc = await _listDir();
         if (suc && Stores.setting.recordHistory.fetch()) {
-          Stores.history.sftpPath.add(p);
+          Stores.history.sftpGoPath.add(p);
         }
       },
       icon: const Icon(Icons.gps_fixed),
@@ -277,7 +277,7 @@ class _SftpPageState extends State<SftpPage> with AfterLayoutMixin {
       style: UIs.textGrey,
       textAlign: TextAlign.right,
     );
-    return RoundRectCard(ListTile(
+    return CardX(ListTile(
       leading: Icon(isDir ? Icons.folder : Icons.insert_drive_file),
       title: Text(file.filename),
       trailing: trailing,
@@ -362,14 +362,14 @@ class _SftpPageState extends State<SftpPage> with AfterLayoutMixin {
       localPath,
       SftpReqType.download,
     );
-    Providers.sftp.add(req, completer: completer);
+    Pros.sftp.add(req, completer: completer);
     context.showLoadingDialog();
     await completer.future;
     context.pop();
 
     final result = await AppRoute.editor(path: localPath).go<bool>(context);
     if (result != null && result) {
-      Providers.sftp
+      Pros.sftp
           .add(SftpReq(req.spi, remotePath, localPath, SftpReqType.upload));
       context.showSnackBar(l10n.added2List);
     }
@@ -389,7 +389,7 @@ class _SftpPageState extends State<SftpPage> with AfterLayoutMixin {
             context.pop();
             final remotePath = _getRemotePath(name);
 
-            Providers.sftp.add(
+            Pros.sftp.add(
               SftpReq(
                 widget.spi,
                 remotePath,
@@ -409,12 +409,16 @@ class _SftpPageState extends State<SftpPage> with AfterLayoutMixin {
   void _delete(SftpName file) {
     context.pop();
     final isDir = file.attr.isDirectory;
-    final useRmrf = Stores.setting.sftpRmrfDir.fetch();
-    final dirText = (isDir && !useRmrf) ? '\n${l10n.sureDirEmpty}' : '';
-    final text = '${l10n.sureDelete(file.filename)}$dirText';
-    final child = Text(text);
+    final useRmr = Stores.setting.sftpRmrDir.fetch();
+    final text = () {
+      if (isDir && !useRmr) {
+        return l10n
+            .askContinue('${l10n.dirEmpty}\n${l10n.delete} ${file.filename}');
+      }
+      return l10n.askContinue('${l10n.delete} ${file.filename}');
+    }();
     context.showRoundDialog(
-      child: child,
+      child: Text(text),
       title: Text(l10n.attention),
       actions: [
         TextButton(
@@ -427,8 +431,8 @@ class _SftpPageState extends State<SftpPage> with AfterLayoutMixin {
             context.showLoadingDialog();
             final remotePath = _getRemotePath(file);
             try {
-              if (useRmrf) {
-                await _client!.run('rm -rf "$remotePath"');
+              if (useRmr) {
+                await _client!.run('rm -r "$remotePath"');
               } else if (file.attr.isDirectory) {
                 await _status.client!.rmdir(remotePath);
               } else {
@@ -475,7 +479,7 @@ class _SftpPageState extends State<SftpPage> with AfterLayoutMixin {
         ),
         TextButton(
           onPressed: () async {
-            if (textController.text == '') {
+            if (textController.text.isEmpty) {
               context.showRoundDialog(
                 child: Text(l10n.fieldMustNotEmpty),
                 actions: [
@@ -512,7 +516,7 @@ class _SftpPageState extends State<SftpPage> with AfterLayoutMixin {
       actions: [
         TextButton(
           onPressed: () async {
-            if (textController.text == '') {
+            if (textController.text.isEmpty) {
               context.showRoundDialog(
                 title: Text(l10n.attention),
                 child: Text(l10n.fieldMustNotEmpty),
@@ -540,7 +544,7 @@ class _SftpPageState extends State<SftpPage> with AfterLayoutMixin {
 
   void _rename(SftpName file) {
     context.pop();
-    final textController = TextEditingController();
+    final textController = TextEditingController(text: file.filename);
     context.showRoundDialog(
       title: Text(l10n.rename),
       child: Input(
@@ -553,7 +557,7 @@ class _SftpPageState extends State<SftpPage> with AfterLayoutMixin {
         TextButton(onPressed: () => context.pop(), child: Text(l10n.cancel)),
         TextButton(
           onPressed: () async {
-            if (textController.text == '') {
+            if (textController.text.isEmpty) {
               context.showRoundDialog(
                 title: Text(l10n.attention),
                 child: Text(l10n.fieldMustNotEmpty),
@@ -566,7 +570,7 @@ class _SftpPageState extends State<SftpPage> with AfterLayoutMixin {
               );
               return;
             }
-            await _status.client!.rename(file.filename, textController.text);
+            await _status.client?.rename(file.filename, textController.text);
             context.pop();
             _listDir();
           },
@@ -610,7 +614,8 @@ class _SftpPageState extends State<SftpPage> with AfterLayoutMixin {
 
   /// Only return true if the path is changed
   Future<bool> _listDir() async {
-    context.showLoadingDialog();
+    // Allow dismiss, because may this op will take a long time
+    context.showLoadingDialog(barrierDismiss: true);
     if (_status.client == null) {
       final sftpc = await _client?.sftp();
       _status.client = sftpc;
@@ -642,6 +647,12 @@ class _SftpPageState extends State<SftpPage> with AfterLayoutMixin {
           _status.files = fs;
         });
         context.pop();
+
+        // Only update history when success
+        if (Stores.setting.sftpOpenLastPath.fetch()) {
+          Stores.history.sftpLastPath.put(widget.spi.id, listPath);
+        }
+
         return true;
       }
       return false;
@@ -674,7 +685,14 @@ class _SftpPageState extends State<SftpPage> with AfterLayoutMixin {
 
   @override
   FutureOr<void> afterFirstLayout(BuildContext context) {
-    _status.path = AbsolutePath(widget.initPath ?? '/');
+    var initPath = '/';
+    if (Stores.setting.sftpOpenLastPath.fetch()) {
+      final history = Stores.history.sftpLastPath.fetch(widget.spi.id);
+      if (history != null) {
+        initPath = history;
+      }
+    }
+    _status.path = AbsolutePath(widget.initPath ?? initPath);
     _listDir();
   }
 }

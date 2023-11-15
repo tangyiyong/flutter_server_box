@@ -20,7 +20,6 @@ import '../../core/utils/ui.dart';
 import '../../data/model/app/net_view.dart';
 import '../../data/model/server/server.dart';
 import '../../data/model/server/server_private_info.dart';
-import '../../data/model/server/server_status.dart';
 import '../../data/res/color.dart';
 
 class FullScreenPage extends StatefulWidget {
@@ -240,7 +239,7 @@ class _FullScreenPageState extends State<FullScreenPage> with AfterLayoutMixin {
       cs,
       ss.temps.first,
       ss.uptime,
-      ss.failedInfo,
+      ss.err,
     );
     return Text(
       topRightStr,
@@ -295,10 +294,10 @@ class _FullScreenPageState extends State<FullScreenPage> with AfterLayoutMixin {
     return ValueListenableBuilder<NetViewType>(
       valueListenable: Stores.setting.netViewType.listenable(),
       builder: (_, val, __) {
-        final data = val.build(ss);
+        final (a, b) = val.build(ss);
         return AnimatedSwitcher(
           duration: const Duration(milliseconds: 177),
-          child: _buildIOData(data.up, data.down),
+          child: _buildIOData(a, b),
         );
       },
     );
@@ -368,8 +367,8 @@ class _FullScreenPageState extends State<FullScreenPage> with AfterLayoutMixin {
       doUpdate(context);
     }
     await GetIt.I.allReady();
-    await Providers.server.loadLocalData();
-    await Providers.server.refreshData();
+    await Pros.server.load();
+    await Pros.server.refreshData();
     if (!Analysis.enabled) {
       await Analysis.init();
     }
