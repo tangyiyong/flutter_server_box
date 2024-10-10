@@ -1,22 +1,29 @@
-import 'package:toolbox/data/model/app/github_id.dart';
-
-class GithubIds {
-  const GithubIds._();
-
+abstract final class GithubIds {
   // Thanks
-  // If you want to change the url, please open an issue.
+  // If you want to change your Github ID, please open an issue.
   static const contributors = <GhId>{
+    'PaperCube',
+    'Integral-Tech',
     'its-tom',
-    'RainSunMe',
-    'kalashnikov',
+    'leganck',
     'azkadev',
+    'kalashnikov',
     'calvinweb',
-    'Liloupar'
+    'No06',
+    'QazCetelic',
+    'RainSunMe',
+    'FrancXPT',
+    'Liloupar',
+    'dccif',
+    'mikropsoft',
+    'CakesTwix',
   };
+
   static const participants = <GhId>{
     'jaychoubaby',
     'fecture',
     'Tao173',
+    'Jasonzhu1207',
     'QingAnLe',
     'wxdjs',
     'Aeorq',
@@ -40,6 +47,63 @@ class GithubIds {
     'wcbing',
     'balh55y',
     'wc7086',
-    'michaelsara'
+    'michaelsara',
+    'xingleiwu',
+    'Cooper098',
+    'xushuojie',
+    'AniberMokie',
+    'LucaLin233',
+    'lalasou',
+    'ohyoxo',
+    'lovechang1986',
+    'luckyreny',
+    'aliuzzz',
+    '58fly',
+    'Potterli20',
+    'Seifon',
+    'bxoooooo',
+    'KatharsisKing',
+    'mervinniu',
+    'L-Super',
+    'Tridays',
+    'Nebulosa-Cat',
+    'dani7959',
+    'MoMingRose',
+    'sakalakagg',
+    'cz32483490',
+    'zj1123581321',
+    'pctoolsx',
+    'pgs666',
+    'FHU-yezi',
+    'ZRY233',
+    'sakuraanzu',
+    'licaon-kter',
+    '77160860',
+    'mijjjj',
+    'muyunil',
+    'Hua159',
+    'jaydong2016',
+    'geol',
+    'Mooling0602',
+    'IllTamer',
+    'marlkiller',
+    'hlarc',
+    'itsandrewpao',
+    'StudyingLover',
+    'QJAG1024',
+    'Wuming-HUST',
+    'WolfCanglong',
+    'liwenjie119',
+    'logce',
+    'h-lyf',
+    '88484396',
+    'honggeigei',
+    'likecreep',
   };
+}
+
+typedef GhId = String;
+
+extension GhIdX on GhId {
+  String get url => 'https://github.com/$this';
 }

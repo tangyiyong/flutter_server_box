@@ -5,9 +5,12 @@ import 'dart:typed_data';
 
 import 'package:dartssh2/dartssh2.dart';
 import 'package:easy_isolate/easy_isolate.dart';
+import 'package:fl_lib/fl_lib.dart';
+import 'package:server_box/core/utils/server.dart';
+import 'package:server_box/data/model/server/server_private_info.dart';
+import 'package:server_box/data/res/store.dart';
 
-import '../../../core/utils/server.dart';
-import 'req.dart';
+part 'req.dart';
 
 class SftpWorker {
   final Function(Object event) onNotify;
@@ -20,14 +23,7 @@ class SftpWorker {
     required this.req,
   });
 
-  /// Use [@Deprecated] to prevent calling [SftpWorker.dispose] directly
-  ///
-  /// Don't delete this method
-  @Deprecated(
-    "Use [SftpWorkerStatus.dispose] to dispose the worker, "
-    "instead of [SftpWorker.dispose]",
-  )
-  void dispose() {
+  void _dispose() {
     worker.dispose();
   }
 
@@ -55,9 +51,9 @@ Future<void> isolateMessageHandler(
   SendPort mainSendPort,
   SendErrorFunction sendError,
 ) async {
-  switch (data.runtimeType) {
-    case SftpReq:
-      switch (data.type) {
+  switch (data) {
+    case final SftpReq val:
+      switch (val.type) {
         case SftpReqType.download:
           await _download(data, mainSendPort, sendError);
           break;
@@ -154,9 +150,12 @@ Future<void> _upload(
     mainSendPort.send(SftpWorkerStatus.loading);
     final localFile = local.openRead().cast<Uint8List>();
     final sftp = await client.sftp();
+    // If remote exists, overwrite it
     final file = await sftp.open(
       req.remotePath,
-      mode: SftpFileOpenMode.write | SftpFileOpenMode.create,
+      mode: SftpFileOpenMode.truncate |
+          SftpFileOpenMode.create |
+          SftpFileOpenMode.write,
     );
     final writer = file.write(
       localFile,

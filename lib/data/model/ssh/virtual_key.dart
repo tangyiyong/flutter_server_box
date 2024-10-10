@@ -1,9 +1,13 @@
+import 'package:fl_lib/fl_lib.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:toolbox/core/extension/context/locale.dart';
+import 'package:server_box/core/extension/context/locale.dart';
+import 'package:server_box/data/res/store.dart';
 import 'package:xterm/core.dart';
 
 part 'virtual_key.g.dart';
+
+enum VirtualKeyFunc { toggleIME, backspace, clipboard, snippet, file }
 
 @HiveType(typeId: 4)
 enum VirtKey {
@@ -38,126 +42,165 @@ enum VirtKey {
   @HiveField(14)
   pgup,
   @HiveField(15)
-  pgdn;
+  pgdn,
+  @HiveField(16)
+  slash,
+  @HiveField(17)
+  backSlash,
+  @HiveField(18)
+  underscore,
+  @HiveField(19)
+  plus,
+  @HiveField(20)
+  equal,
+  @HiveField(21)
+  minus,
+  @HiveField(22)
+  parenLeft,
+  @HiveField(23)
+  parenRight,
+  @HiveField(24)
+  bracketLeft,
+  @HiveField(25)
+  bracketRight,
+  @HiveField(26)
+  braceLeft,
+  @HiveField(27)
+  braceRight,
+  @HiveField(28)
+  chevronLeft,
+  @HiveField(29)
+  chevronRight,
+  @HiveField(30)
+  colon,
+  @HiveField(31)
+  semicolon,
+  ;
+}
 
+extension VirtKeyX on VirtKey {
+  /// Used for input to terminal
+  String? get inputRaw => switch (this) {
+        VirtKey.slash => '/',
+        VirtKey.backSlash => '\\',
+        VirtKey.underscore => '_',
+        VirtKey.plus => '+',
+        VirtKey.equal => '=',
+        VirtKey.minus => '-',
+        VirtKey.parenLeft => '(',
+        VirtKey.parenRight => ')',
+        VirtKey.bracketLeft => '[',
+        VirtKey.bracketRight => ']',
+        VirtKey.braceLeft => '{',
+        VirtKey.braceRight => '}',
+        VirtKey.chevronLeft => '<',
+        VirtKey.chevronRight => '>',
+        VirtKey.colon => ':',
+        VirtKey.semicolon => ';',
+        _ => null,
+      };
+
+  /// Used for displaying on UI
   String get text {
-    switch (this) {
-      case VirtKey.pgdn:
-        return 'PgDn';
-      case VirtKey.pgup:
-        return 'PgUp';
-      default:
-        if (name.length > 1) {
-          return name.substring(0, 1).toUpperCase() + name.substring(1);
-        }
-        return name;
+    final t = inputRaw;
+    if (t != null) return t;
+
+    if (this == VirtKey.pgdn) return 'PgDn';
+    if (this == VirtKey.pgup) return 'PgUp';
+
+    if (name.length > 1) {
+      return name.substring(0, 1).toUpperCase() + name.substring(1);
     }
+    return name;
   }
 
-  TerminalKey? get key {
-    switch (this) {
-      case VirtKey.esc:
-        return TerminalKey.escape;
-      case VirtKey.alt:
-        return TerminalKey.alt;
-      case VirtKey.home:
-        return TerminalKey.home;
-      case VirtKey.up:
-        return TerminalKey.arrowUp;
-      case VirtKey.end:
-        return TerminalKey.end;
-      case VirtKey.tab:
-        return TerminalKey.tab;
-      case VirtKey.ctrl:
-        return TerminalKey.control;
-      case VirtKey.left:
-        return TerminalKey.arrowLeft;
-      case VirtKey.down:
-        return TerminalKey.arrowDown;
-      case VirtKey.right:
-        return TerminalKey.arrowRight;
-      case VirtKey.pgup:
-        return TerminalKey.pageUp;
-      case VirtKey.pgdn:
-        return TerminalKey.pageDown;
-      default:
-        return null;
-    }
-  }
+  /// Default order of virtual keys
+  static const defaultOrder = [
+    VirtKey.esc,
+    VirtKey.alt,
+    VirtKey.home,
+    VirtKey.up,
+    VirtKey.end,
+    VirtKey.sftp,
+    VirtKey.snippet,
+    VirtKey.tab,
+    VirtKey.ctrl,
+    VirtKey.left,
+    VirtKey.down,
+    VirtKey.right,
+    VirtKey.clipboard,
+    VirtKey.ime,
+  ];
 
-  IconData? get icon {
-    switch (this) {
-      case VirtKey.up:
-        return Icons.arrow_upward;
-      case VirtKey.left:
-        return Icons.arrow_back;
-      case VirtKey.down:
-        return Icons.arrow_downward;
-      case VirtKey.right:
-        return Icons.arrow_forward;
-      case VirtKey.sftp:
-        return Icons.file_open;
-      case VirtKey.snippet:
-        return Icons.code;
-      case VirtKey.clipboard:
-        return Icons.paste;
-      case VirtKey.ime:
-        return Icons.keyboard_hide;
-      default:
-        return null;
-    }
-  }
+  /// Corresponding [TerminalKey]
+  TerminalKey? get key => switch (this) {
+        VirtKey.esc => TerminalKey.escape,
+        VirtKey.alt => TerminalKey.alt,
+        VirtKey.home => TerminalKey.home,
+        VirtKey.up => TerminalKey.arrowUp,
+        VirtKey.end => TerminalKey.end,
+        VirtKey.tab => TerminalKey.tab,
+        VirtKey.ctrl => TerminalKey.control,
+        VirtKey.left => TerminalKey.arrowLeft,
+        VirtKey.down => TerminalKey.arrowDown,
+        VirtKey.right => TerminalKey.arrowRight,
+        VirtKey.pgup => TerminalKey.pageUp,
+        VirtKey.pgdn => TerminalKey.pageDown,
+        _ => null,
+      };
+
+  /// Icons for virtual keys
+  IconData? get icon => switch (this) {
+        VirtKey.up => Icons.arrow_upward,
+        VirtKey.left => Icons.arrow_back,
+        VirtKey.down => Icons.arrow_downward,
+        VirtKey.right => Icons.arrow_forward,
+        VirtKey.sftp => Icons.file_open,
+        VirtKey.snippet => Icons.code,
+        VirtKey.clipboard => Icons.paste,
+        VirtKey.ime => Icons.keyboard,
+        _ => null,
+      };
 
   // Use [VirtualKeyFunc] instead of [VirtKey]
   // This can help linter to enum all [VirtualKeyFunc]
   // and make sure all [VirtualKeyFunc] are handled
-  VirtualKeyFunc? get func {
-    switch (this) {
-      case VirtKey.sftp:
-        return VirtualKeyFunc.file;
-      case VirtKey.snippet:
-        return VirtualKeyFunc.snippet;
-      case VirtKey.clipboard:
-        return VirtualKeyFunc.clipboard;
-      case VirtKey.ime:
-        return VirtualKeyFunc.toggleIME;
-      default:
-        return null;
-    }
-  }
+  VirtualKeyFunc? get func => switch (this) {
+        VirtKey.sftp => VirtualKeyFunc.file,
+        VirtKey.snippet => VirtualKeyFunc.snippet,
+        VirtKey.clipboard => VirtualKeyFunc.clipboard,
+        VirtKey.ime => VirtualKeyFunc.toggleIME,
+        _ => null,
+      };
 
-  bool get toggleable {
-    switch (this) {
-      case VirtKey.alt:
-      case VirtKey.ctrl:
-        return true;
-      default:
-        return false;
-    }
-  }
+  bool get toggleable => switch (this) {
+        VirtKey.alt || VirtKey.ctrl => true,
+        _ => false,
+      };
 
-  bool get canLongPress {
-    switch (this) {
-      case VirtKey.up:
-      case VirtKey.left:
-      case VirtKey.down:
-      case VirtKey.right:
-        return true;
-      default:
-        return false;
-    }
-  }
+  bool get canLongPress => switch (this) {
+        VirtKey.up || VirtKey.left || VirtKey.down || VirtKey.right => true,
+        _ => false,
+      };
 
-  String? get help {
-    switch (this) {
-      case VirtKey.sftp:
-        return l10n.virtKeyHelpSFTP;
-      case VirtKey.clipboard:
-        return l10n.virtKeyHelpClipboard;
-      default:
-        return null;
+  String? get help => switch (this) {
+        VirtKey.sftp => l10n.virtKeyHelpSFTP,
+        VirtKey.clipboard => l10n.virtKeyHelpClipboard,
+        VirtKey.ime => l10n.virtKeyHelpIME,
+        _ => null,
+      };
+
+  /// - [saveDefaultIfErr] if the stored raw values is invalid, save default order to store
+  static List<VirtKey> loadFromStore({bool saveDefaultIfErr = true}) {
+    try {
+      final ints = Stores.setting.sshVirtKeys.fetch();
+      return ints.map((e) => VirtKey.values[e]).toList();
+    } on RangeError {
+      final ints = defaultOrder.map((e) => e.index).toList();
+      Stores.setting.sshVirtKeys.put(ints);
+    } catch (e, s) {
+      Loggers.app.warning('Failed to load sshVirtKeys', e, s);
     }
+    return defaultOrder;
   }
 }
-
-enum VirtualKeyFunc { toggleIME, backspace, clipboard, snippet, file }

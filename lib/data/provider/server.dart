@@ -1,45 +1,59 @@
 import 'dart:async';
-import 'dart:io';
+// import 'dart:io';
 
-import 'package:flutter/foundation.dart';
-import 'package:toolbox/core/utils/platform/path.dart';
-import 'package:toolbox/data/model/app/shell_func.dart';
-import 'package:toolbox/data/model/server/system.dart';
-import 'package:toolbox/data/model/sftp/req.dart';
-import 'package:toolbox/data/res/logger.dart';
-import 'package:toolbox/data/res/path.dart';
-import 'package:toolbox/data/res/provider.dart';
-import 'package:toolbox/data/res/store.dart';
+import 'package:computer/computer.dart';
+import 'package:dartssh2/dartssh2.dart';
+import 'package:fl_lib/fl_lib.dart';
+import 'package:server_box/core/extension/ssh_client.dart';
+import 'package:server_box/core/sync.dart';
+import 'package:server_box/core/utils/ssh_auth.dart';
+import 'package:server_box/data/model/app/error.dart';
+import 'package:server_box/data/model/app/shell_func.dart';
+import 'package:server_box/data/model/server/system.dart';
+import 'package:server_box/data/res/store.dart';
 
-import '../../core/extension/order.dart';
-import '../../core/extension/uint8list.dart';
-import '../../core/utils/server.dart';
-import '../model/server/server.dart';
-import '../model/server/server_private_info.dart';
-import '../model/server/server_status_update_req.dart';
-import '../model/server/snippet.dart';
-import '../model/server/try_limiter.dart';
-import '../res/status.dart';
+import 'package:server_box/core/utils/server.dart';
+import 'package:server_box/data/model/server/server.dart';
+import 'package:server_box/data/model/server/server_private_info.dart';
+import 'package:server_box/data/model/server/server_status_update_req.dart';
+import 'package:server_box/data/model/server/try_limiter.dart';
+import 'package:server_box/data/res/status.dart';
 
-class ServerProvider extends ChangeNotifier {
-  final Map<String, Server> _servers = {};
-  Iterable<Server> get servers => _servers.values;
-  final Order<String> _serverOrder = [];
-  Order<String> get serverOrder => _serverOrder;
-  final List<String> _tags = [];
-  List<String> get tags => _tags;
+class ServerProvider extends Provider {
+  const ServerProvider._();
+  static const instance = ServerProvider._();
 
-  Timer? _timer;
+  static final Map<String, VNode<Server>> servers = {};
+  static final serverOrder = <String>[].vn;
+  static final _tags = <String>{}.vn;
+  static VNode<Set<String>> get tags => _tags;
 
+  static Timer? _timer;
+
+  static final _manualDisconnectedIds = <String>{};
+
+  @override
   Future<void> load() async {
-    // Issue #147
+    super.load();
+    // #147
     // Clear all servers because of restarting app will cause duplicate servers
-    _servers.clear();
-    _serverOrder.clear();
+    final oldServers = Map<String, VNode<Server>>.from(servers);
+    servers.clear();
+    serverOrder.value.clear();
 
     final spis = Stores.server.fetch();
     for (int idx = 0; idx < spis.length; idx++) {
-      _servers[spis[idx].id] = genServer(spis[idx]);
+      final spi = spis[idx];
+      final originServer = oldServers[spi.id];
+      final newServer = genServer(spi);
+
+      /// #258
+      /// If not [shouldReconnect], then keep the old state.
+      if (originServer != null &&
+          !originServer.value.spi.shouldReconnect(spi)) {
+        newServer.conn = originServer.value.conn;
+      }
+      servers[spi.id] = newServer.vn;
     }
     final serverOrder_ = Stores.setting.serverOrder.fetch();
     if (serverOrder_.isNotEmpty) {
@@ -47,376 +61,371 @@ class ServerProvider extends ChangeNotifier {
         order: serverOrder_,
         finder: (n, id) => n.id == id,
       );
-      _serverOrder.addAll(spis.map((e) => e.id));
+      serverOrder.value.addAll(spis.map((e) => e.id));
     } else {
-      _serverOrder.addAll(_servers.keys);
+      serverOrder.value.addAll(servers.keys);
     }
     // Must use [equals] to compare [Order] here.
-    if (!_serverOrder.equals(serverOrder_)) {
-      Stores.setting.serverOrder.put(_serverOrder);
+    if (!serverOrder.value.equals(serverOrder_)) {
+      Stores.setting.serverOrder.put(serverOrder.value);
     }
     _updateTags();
-    notifyListeners();
+    // Must notify here, or the UI will not be updated.
+    serverOrder.notify();
   }
 
   /// Get a [Server] by [spi] or [id].
   ///
   /// Priority: [spi] > [id]
-  Server? pick({ServerPrivateInfo? spi, String? id}) {
+  static VNode<Server>? pick({Spi? spi, String? id}) {
     if (spi != null) {
-      return _servers[spi.id];
+      return servers[spi.id];
     }
     if (id != null) {
-      return _servers[id];
+      return servers[id];
     }
     return null;
   }
 
-  void _updateTags() {
-    _tags.clear();
-    for (final s in _servers.values) {
-      if (s.spi.tags == null) continue;
-      for (final t in s.spi.tags!) {
-        if (!_tags.contains(t)) {
-          _tags.add(t);
-        }
+  static void _updateTags() {
+    final tags = <String>{};
+    for (final s in servers.values) {
+      final spiTags = s.value.spi.tags;
+      if (spiTags == null) continue;
+      for (final t in spiTags) {
+        tags.add(t);
       }
     }
-    _tags.sort();
-    notifyListeners();
+    _tags.value = tags;
   }
 
-  void renameTag(String old, String new_) {
-    for (final s in _servers.values) {
-      if (s.spi.tags == null) continue;
-      for (var i = 0; i < s.spi.tags!.length; i++) {
-        if (s.spi.tags![i] == old) {
-          s.spi.tags![i] = new_;
-        }
-      }
-      Stores.server.update(s.spi, s.spi);
-    }
-    _updateTags();
-  }
-
-  Server genServer(ServerPrivateInfo spi) {
-    return Server(spi, InitStatus.status, ServerState.disconnected);
+  static Server genServer(Spi spi) {
+    return Server(spi, InitStatus.status, ServerConn.disconnected);
   }
 
   /// if [spi] is specificed then only refresh this server
   /// [onlyFailed] only refresh failed servers
-  Future<void> refreshData({
-    ServerPrivateInfo? spi,
+  static Future<void> refresh({
+    Spi? spi,
     bool onlyFailed = false,
   }) async {
     if (spi != null) {
+      _manualDisconnectedIds.remove(spi.id);
       await _getData(spi);
       return;
     }
 
-    await Future.wait(_servers.values.map((s) => _connectFn(s, onlyFailed)));
+    await Future.wait(servers.values.map((val) async {
+      final s = val.value;
+      if (onlyFailed) {
+        if (s.conn != ServerConn.failed) return;
+        TryLimiter.reset(s.spi.id);
+      }
+
+      if (_manualDisconnectedIds.contains(s.spi.id)) return;
+
+      if (s.conn == ServerConn.disconnected && !s.spi.autoConnect) {
+        return;
+      }
+
+      return await _getData(s.spi);
+    }));
   }
 
-  Future<void> _connectFn(Server s, bool onlyFailed) async {
-    if (onlyFailed) {
-      if (s.state != ServerState.failed) return;
-      TryLimiter.reset(s.spi.id);
-    }
-
-    /// If [spi.autoConnect] is false and server is disconnected, then skip.
-    ///
-    /// If [spi.autoConnect] is false and server is connected, then refresh.
-    /// If no this, the server will only refresh once by clicking refresh button.
-    ///
-    /// If [spi.autoConnect] is true, then refresh.
-    if (!(s.spi.autoConnect ?? true) && s.state == ServerState.disconnected) {
-      return;
-    }
-    return await _getData(s.spi);
-  }
-
-  Future<void> startAutoRefresh() async {
-    final duration = Stores.setting.serverStatusUpdateInterval.fetch();
+  static Future<void> startAutoRefresh() async {
+    var duration = Stores.setting.serverStatusUpdateInterval.fetch();
     stopAutoRefresh();
     if (duration == 0) return;
+    if (duration < 0 || duration > 10 || duration == 1) {
+      duration = 3;
+      Loggers.app.warning('Invalid duration: $duration, use default 3');
+    }
     _timer = Timer.periodic(Duration(seconds: duration), (_) async {
-      await refreshData();
+      await refresh();
     });
   }
 
-  void stopAutoRefresh() {
+  static void stopAutoRefresh() {
     if (_timer != null) {
       _timer!.cancel();
       _timer = null;
     }
   }
 
-  bool get isAutoRefreshOn => _timer != null;
+  static bool get isAutoRefreshOn => _timer != null;
 
-  void setDisconnected() {
-    for (final s in _servers.values) {
-      s.state = ServerState.disconnected;
+  static void setDisconnected() {
+    for (final s in servers.values) {
+      s.value.conn = ServerConn.disconnected;
+      s.notify();
     }
     //TryLimiter.clear();
-    notifyListeners();
   }
 
-  void closeServer({String? id}) {
+  static void closeServer({String? id}) {
     if (id == null) {
-      for (final s in _servers.values) {
-        _closeOneServer(s.spi.id);
+      for (final s in servers.values) {
+        _closeOneServer(s.value.spi.id);
       }
       return;
     }
     _closeOneServer(id);
   }
 
-  void _closeOneServer(String id) {
-    _servers[id]?.client?.close();
-    _servers[id]?.client = null;
+  static void _closeOneServer(String id) {
+    final s = servers[id];
+    final item = s?.value;
+    item?.client?.close();
+    item?.client = null;
+    item?.conn = ServerConn.disconnected;
+    _manualDisconnectedIds.add(id);
+    s?.notify();
   }
 
-  void addServer(ServerPrivateInfo spi) {
-    _servers[spi.id] = genServer(spi);
-    notifyListeners();
+  static void addServer(Spi spi) {
+    servers[spi.id] = genServer(spi).vn;
     Stores.server.put(spi);
-    _serverOrder.add(spi.id);
-    Stores.setting.serverOrder.put(_serverOrder);
+    serverOrder.value.add(spi.id);
+    serverOrder.notify();
+    Stores.setting.serverOrder.put(serverOrder.value);
     _updateTags();
-    refreshData(spi: spi);
+    refresh(spi: spi);
+    bakSync.sync(milliDelay: 1000);
   }
 
-  void delServer(String id) {
-    _servers.remove(id);
-    _serverOrder.remove(id);
-    Stores.setting.serverOrder.put(_serverOrder);
-    _updateTags();
-    notifyListeners();
+  static void delServer(String id) {
+    servers.remove(id);
+    serverOrder.value.remove(id);
+    serverOrder.notify();
+    Stores.setting.serverOrder.put(serverOrder.value);
     Stores.server.delete(id);
-  }
-
-  void deleteAll() {
-    _servers.clear();
-    _serverOrder.clear();
-    Stores.setting.serverOrder.put(_serverOrder);
     _updateTags();
-    notifyListeners();
-    Stores.server.deleteAll();
+    bakSync.sync(milliDelay: 1000);
   }
 
-  Future<void> updateServer(
-    ServerPrivateInfo old,
-    ServerPrivateInfo newSpi,
+  static void deleteAll() {
+    servers.clear();
+    serverOrder.value.clear();
+    serverOrder.notify();
+    Stores.setting.serverOrder.put(serverOrder.value);
+    Stores.server.deleteAll();
+    _updateTags();
+  }
+
+  static Future<void> updateServer(
+    Spi old,
+    Spi newSpi,
   ) async {
     if (old != newSpi) {
       Stores.server.update(old, newSpi);
-      _servers[old.id]?.spi = newSpi;
+      servers[old.id]?.value.spi = newSpi;
 
       if (newSpi.id != old.id) {
-        _servers[newSpi.id] = _servers[old.id]!;
-        _servers[newSpi.id]?.spi = newSpi;
-        _servers.remove(old.id);
-        _serverOrder.update(old.id, newSpi.id);
-        Stores.setting.serverOrder.put(_serverOrder);
+        servers[newSpi.id] = servers[old.id]!;
+        servers.remove(old.id);
+        serverOrder.value.update(old.id, newSpi.id);
+        Stores.setting.serverOrder.put(serverOrder.value);
+        serverOrder.notify();
       }
 
       // Only reconnect if neccessary
       if (newSpi.shouldReconnect(old)) {
         // Use [newSpi.id] instead of [old.id] because [old.id] may be changed
         TryLimiter.reset(newSpi.id);
-        refreshData(spi: newSpi);
+        refresh(spi: newSpi);
       }
-
-      // Only update if [spi.tags] changed
-      _updateTags();
     }
+    _updateTags();
+    bakSync.sync();
   }
 
-  void _setServerState(Server s, ServerState ss) {
-    s.state = ss;
-
-    /// Only set [Sever.isBusy] to false when err occurs or finished.
-    switch (ss) {
-      case ServerState.failed || ServerState.finished:
-        s.isBusy = false;
-        break;
-      default:
-        break;
-    }
-    notifyListeners();
+  static void _setServerState(VNode<Server> s, ServerConn ss) {
+    s.value.conn = ss;
+    s.notify();
   }
 
-  Future<void> _getData(ServerPrivateInfo spi) async {
+  static Future<void> _getData(Spi spi) async {
     final sid = spi.id;
-    final s = _servers[sid];
+    final s = servers[sid];
 
     if (s == null) return;
 
+    final sv = s.value;
     if (!TryLimiter.canTry(sid)) {
-      if (s.state != ServerState.failed) {
-        _setServerState(s, ServerState.failed);
+      if (sv.conn != ServerConn.failed) {
+        _setServerState(s, ServerConn.failed);
       }
       return;
     }
 
-    s.status.err = null;
+    sv.status.err = null;
 
-    /// If busy, it may be because of network reasons that the last request
-    /// has not been completed, and the request should not be made again at this time.
-    if (s.isBusy) return;
-    s.isBusy = true;
+    if (sv.needGenClient || (sv.client?.isClosed ?? true)) {
+      _setServerState(s, ServerConn.connecting);
 
-    if (s.needGenClient || (s.client?.isClosed ?? true)) {
-      _setServerState(s, ServerState.connecting);
+      final wol = spi.wolCfg;
+      if (wol != null) {
+        try {
+          await wol.wake();
+        } catch (e) {
+          // TryLimiter.inc(sid);
+          // s.status.err = SSHErr(
+          //   type: SSHErrType.connect,
+          //   message: 'Wake on lan failed: $e',
+          // );
+          // _setServerState(s, ServerConn.failed);
+          Loggers.app.warning('Wake on lan failed', e);
+          // return;
+        }
+      }
 
       try {
         final time1 = DateTime.now();
-        s.client = await genClient(
+        sv.client = await genClient(
           spi,
-          timeout: Stores.setting.timeoutD,
+          timeout: Duration(seconds: Stores.setting.timeout.fetch()),
+          onKeyboardInteractive: (_) => KeybordInteractive.defaultHandle(spi),
         );
         final time2 = DateTime.now();
         final spentTime = time2.difference(time1).inMilliseconds;
         if (spi.jumpId == null) {
           Loggers.app.info('Connected to ${spi.name} in $spentTime ms.');
         } else {
-          Loggers.app.info(
-            'Connected to ${spi.name} via jump server in $spentTime ms.',
-          );
+          Loggers.app.info('Jump to ${spi.name} in $spentTime ms.');
         }
       } catch (e) {
         TryLimiter.inc(sid);
-        s.status.err = e.toString();
-        _setServerState(s, ServerState.failed);
+        sv.status.err = SSHErr(type: SSHErrType.connect, message: e.toString());
+        _setServerState(s, ServerConn.failed);
 
         /// In order to keep privacy, print [spi.name] instead of [spi.id]
         Loggers.app.warning('Connect to ${spi.name} failed', e);
         return;
       }
 
-      _setServerState(s, ServerState.connected);
+      _setServerState(s, ServerConn.connected);
 
-      // Write script to server
-      // by ssh
       try {
-        final writeResult =
-            await s.client?.run(ShellFunc.installShellCmd).string;
-        if (writeResult == null || writeResult.isNotEmpty) {
-          throw Exception('$writeResult');
+        final (_, writeScriptResult) = await sv.client!.exec(
+          (session) async {
+            final scriptRaw = ShellFunc.allScript(spi.custom?.cmds).uint8List;
+            session.stdin.add(scriptRaw);
+            session.stdin.close();
+          },
+          entry: ShellFunc.getInstallShellCmd(spi.id),
+        );
+        if (writeScriptResult.isNotEmpty) {
+          ShellFunc.switchScriptDir(spi.id);
+          throw writeScriptResult;
         }
+      } on SSHAuthAbortError catch (e) {
+        TryLimiter.inc(sid);
+        final err = SSHErr(type: SSHErrType.auth, message: e.toString());
+        sv.status.err = err;
+        Loggers.app.warning(err);
+        _setServerState(s, ServerConn.failed);
+        return;
+      } on SSHAuthFailError catch (e) {
+        TryLimiter.inc(sid);
+        final err = SSHErr(type: SSHErrType.auth, message: e.toString());
+        sv.status.err = err;
+        Loggers.app.warning(err);
+        _setServerState(s, ServerConn.failed);
+        return;
       } catch (e) {
-        Loggers.app.warning('Write script to ${spi.name} by shell', e);
-        // by sftp
-        final localPath = joinPath(await Paths.doc, 'install.sh');
-        final file = File(localPath);
-        try {
-          Loggers.app.info('Using SFTP to write script to ${spi.name}');
-          file.writeAsString(ShellFunc.allScript);
-          final completer = Completer();
-          final homePath = (await s.client?.run('echo \$HOME').string)?.trim();
-          if (homePath == null || homePath.isEmpty) {
-            throw Exception('Got home path: $homePath');
-          }
-          final remotePath = ShellFunc.getShellPath(homePath);
-          final reqId = Pros.sftp.add(
-            SftpReq(spi, remotePath, localPath, SftpReqType.upload),
-            completer: completer,
-          );
-          await completer.future;
-          final err = Pros.sftp.get(reqId)?.error;
-          if (err != null) {
-            throw err;
-          }
-        } catch (e) {
-          TryLimiter.inc(sid);
-          s.status.err = e.toString();
-          _setServerState(s, ServerState.failed);
-          Loggers.app.warning('Write script to ${spi.name} by sftp', e);
-          return;
-        } finally {
-          if (await file.exists()) await file.delete();
-        }
+        // If max try times < 2 and can't write script, this will stop the status getting and etc.
+        // TryLimiter.inc(sid);
+        final err = SSHErr(type: SSHErrType.writeScript, message: e.toString());
+        sv.status.err = err;
+        Loggers.app.warning(err);
+        _setServerState(s, ServerConn.failed);
       }
     }
+
+    if (sv.conn == ServerConn.connecting) return;
 
     /// Keep [finished] state, or the UI will be refreshed to [loading] state
     /// instead of the '$Temp | $Uptime'.
     /// eg: '32C | 7 days'
-    if (s.state != ServerState.finished) {
-      _setServerState(s, ServerState.loading);
+    if (sv.conn != ServerConn.finished) {
+      _setServerState(s, ServerConn.loading);
     }
 
     List<String>? segments;
     String? raw;
 
     try {
-      raw = await s.client?.run(ShellFunc.status.exec).string;
-      segments = raw?.split(seperator).map((e) => e.trim()).toList();
+      raw = await sv.client?.run(ShellFunc.status.exec(spi.id)).string;
+      segments = raw?.split(ShellFunc.seperator).map((e) => e.trim()).toList();
       if (raw == null || raw.isEmpty || segments == null || segments.isEmpty) {
+        if (Stores.setting.keepStatusWhenErr.fetch()) {
+          // Keep previous server status when err occurs
+          if (sv.conn != ServerConn.failed && sv.status.more.isNotEmpty) {
+            return;
+          }
+        }
         TryLimiter.inc(sid);
-        s.status.err = 'Seperate segments failed, raw:\n$raw';
-        _setServerState(s, ServerState.failed);
+        sv.status.err = SSHErr(
+          type: SSHErrType.segements,
+          message: 'Seperate segments failed, raw:\n$raw',
+        );
+        _setServerState(s, ServerConn.failed);
         return;
       }
     } catch (e) {
       TryLimiter.inc(sid);
-      s.status.err = e.toString();
-      _setServerState(s, ServerState.failed);
+      sv.status.err = SSHErr(type: SSHErrType.getStatus, message: e.toString());
+      _setServerState(s, ServerConn.failed);
       Loggers.app.warning('Get status from ${spi.name} failed', e);
       return;
     }
 
     final systemType = SystemType.parse(segments[0]);
-    if (!systemType.isSegmentsLenMatch(segments.length)) {
+    final customCmdLen = spi.custom?.cmds?.length ?? 0;
+    if (!systemType.isSegmentsLenMatch(segments.length - customCmdLen)) {
       TryLimiter.inc(sid);
-      s.status.err =
-          'Segments not match: expect ${systemType.segmentsLen}, got ${segments.length}';
-      _setServerState(s, ServerState.failed);
+      if (raw.contains('Could not chdir to home directory /var/services/')) {
+        sv.status.err = SSHErr(type: SSHErrType.chdir, message: raw);
+        _setServerState(s, ServerConn.failed);
+        return;
+      }
+      final expected = systemType.segmentsLen;
+      final actual = segments.length;
+      sv.status.err = SSHErr(
+        type: SSHErrType.segements,
+        message: 'Segments: expect $expected, got $actual, raw:\n\n$raw',
+      );
+      _setServerState(s, ServerConn.failed);
       return;
     }
-    s.status.system = systemType;
+    sv.status.system = systemType;
 
     try {
       final req = ServerStatusUpdateReq(
-        ss: s.status,
+        ss: sv.status,
         segments: segments,
         system: systemType,
+        customCmds: spi.custom?.cmds ?? {},
       );
-      s.status = await compute(getStatus, req);
+      sv.status = await Computer.shared.start(
+        getStatus,
+        req,
+        taskName: 'StatusUpdateReq<${sv.id}>',
+      );
     } catch (e, trace) {
       TryLimiter.inc(sid);
-      s.status.err = 'Parse failed: $e\n\n$raw';
-      _setServerState(s, ServerState.failed);
-      Loggers.parse.warning('Server status', e, trace);
+      sv.status.err = SSHErr(
+        type: SSHErrType.getStatus,
+        message: 'Parse failed: $e\n\n$raw',
+      );
+      _setServerState(s, ServerConn.failed);
+      Loggers.app.warning('Server status', e, trace);
       return;
     }
 
     /// Call this every time for setting [Server.isBusy] to false
-    _setServerState(s, ServerState.finished);
+    _setServerState(s, ServerConn.finished);
     // reset try times only after prepared successfully
     TryLimiter.reset(sid);
-  }
-
-  Future<SnippetResult?> runSnippets(String id, Snippet snippet) async {
-    final client = _servers[id]?.client;
-    if (client == null) {
-      return null;
-    }
-    final watch = Stopwatch()..start();
-    final result = await client.run(snippet.script).string;
-    final time = watch.elapsed;
-    watch.stop();
-    return SnippetResult(
-      dest: _servers[id]?.spi.name,
-      result: result,
-      time: time,
-    );
-  }
-
-  Future<List<SnippetResult?>> runSnippetsMulti(
-    List<String> ids,
-    Snippet snippet,
-  ) async {
-    return await Future.wait(ids.map((id) async => runSnippets(id, snippet)));
   }
 }

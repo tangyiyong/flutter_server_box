@@ -1,88 +1,122 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:dartssh2/dartssh2.dart';
-import 'package:flutter/foundation.dart';
+import 'package:fl_lib/fl_lib.dart';
 import 'package:flutter/widgets.dart';
-import 'package:toolbox/core/extension/context/dialog.dart';
-import 'package:toolbox/core/extension/stringx.dart';
-import 'package:toolbox/core/extension/uint8list.dart';
 
-import '../../data/res/misc.dart';
+import 'package:server_box/data/res/misc.dart';
 
-typedef _OnStdout = void Function(String data, StreamSink<Uint8List> sink);
-typedef _OnStdin = void Function(StreamSink<Uint8List> sink);
+typedef OnStdout = void Function(String data, SSHSession session);
+typedef OnStdin = void Function(SSHSession session);
 
 typedef PwdRequestFunc = Future<String?> Function(String? user);
 
 extension SSHClientX on SSHClient {
-  Future<int?> exec(
-    String cmd, {
-    _OnStdout? onStderr,
-    _OnStdout? onStdout,
-    _OnStdin? stdin,
+  Future<(SSHSession, String)> exec(
+    OnStdin onStdin, {
+    String? entry,
+    SSHPtyConfig? pty,
+    OnStdout? onStdout,
+    OnStdout? onStderr,
+    bool stdout = true,
+    bool stderr = true,
+    Map<String, String>? env,
   }) async {
-    final session = await execute(cmd);
+    final session = await execute(
+      entry ?? 'cat | sh',
+      pty: pty,
+      environment: env,
+    );
 
+    final result = BytesBuilder(copy: false);
     final stdoutDone = Completer<void>();
     final stderrDone = Completer<void>();
 
-    if (onStdout != null) {
-      session.stdout.listen(
-        (e) => onStdout(e.string, session.stdin),
-        onDone: stdoutDone.complete,
-      );
-    } else {
-      stdoutDone.complete();
-    }
+    session.stdout.listen(
+      (e) {
+        onStdout?.call(e.string, session);
+        if (stdout) result.add(e);
+      },
+      onDone: stdoutDone.complete,
+      onError: stderrDone.completeError,
+    );
 
-    if (onStderr != null) {
-      session.stderr.listen(
-        (e) => onStderr(e.string, session.stdin),
-        onDone: stderrDone.complete,
-      );
-    } else {
-      stderrDone.complete();
-    }
+    session.stderr.listen(
+      (e) {
+        onStderr?.call(e.string, session);
+        if (stderr) result.add(e);
+      },
+      onDone: stderrDone.complete,
+      onError: stderrDone.completeError,
+    );
 
-    if (stdin != null) {
-      stdin(session.stdin);
-    }
+    onStdin(session);
 
     await stdoutDone.future;
     await stderrDone.future;
 
-    session.close();
-    return session.exitCode;
+    return (session, result.takeBytes().string);
   }
 
   Future<int?> execWithPwd(
-    String cmd, {
+    String script, {
+    String? entry,
     BuildContext? context,
-    _OnStdout? onStdout,
-    _OnStdout? onStderr,
-    _OnStdin? stdin,
+    OnStdout? onStdout,
+    OnStdout? onStderr,
+    required String id,
   }) async {
     var isRequestingPwd = false;
-    return await exec(
-      cmd,
-      onStderr: (data, sink) async {
-        onStderr?.call(data, sink);
+    final (session, _) = await exec(
+      (sess) {
+        sess.stdin.add('$script\n'.uint8List);
+        sess.stdin.close();
+      },
+      onStderr: (data, session) async {
+        onStderr?.call(data, session);
         if (isRequestingPwd) return;
-        isRequestingPwd = true;
+
         if (data.contains('[sudo] password for ')) {
+          isRequestingPwd = true;
           final user = Miscs.pwdRequestWithUserReg.firstMatch(data)?.group(1);
           if (context == null) return;
-          final pwd = await context.showPwdDialog(user);
+          final pwd = context.mounted
+              ? await context.showPwdDialog(title: user, id: id)
+              : null;
           if (pwd == null || pwd.isEmpty) {
-            // Add ctrl + c to exit.
-            sink.add('\x03'.uint8List);
+            session.stdin.close();
           } else {
-            sink.add('$pwd\n'.uint8List);
+            session.stdin.add('$pwd\n'.uint8List);
           }
+          isRequestingPwd = false;
         }
       },
       onStdout: onStdout,
-      stdin: stdin,
+      entry: entry,
     );
+    return session.exitCode;
+  }
+
+  Future<String> execForOutput(
+    String script, {
+    SSHPtyConfig? pty,
+    bool stdout = true,
+    bool stderr = true,
+    String? entry,
+    Map<String, String>? env,
+  }) async {
+    final ret = await exec(
+      (session) {
+        session.stdin.add('$script\n'.uint8List);
+        session.stdin.close();
+      },
+      pty: pty,
+      env: env,
+      stdout: stdout,
+      stderr: stderr,
+      entry: entry,
+    );
+    return ret.$2;
   }
 }

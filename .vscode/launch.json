@@ -5,15 +5,19 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "toolbox",
+            "name": "debug",
             "request": "launch",
             "type": "dart",
+            "env": {
+                // Comment this line to use the default display
+                "DISPLAY": ":1"
+            }
             // "args": [
             //     "-v"
             // ]
         },
         {
-            "name": "toolbox (profile mode)",
+            "name": "profile",
             "request": "launch",
             "type": "dart",
             "flutterMode": "profile",

@@ -1,19 +1,23 @@
-import '../../core/persistant_store.dart';
-import '../model/server/server_private_info.dart';
+import 'package:fl_lib/fl_lib.dart';
 
-class ServerStore extends PersistentStore<ServerPrivateInfo> {
-  ServerStore() : super('server');
+import 'package:server_box/data/model/server/server_private_info.dart';
 
-  void put(ServerPrivateInfo info) {
+class ServerStore extends PersistentStore {
+  ServerStore._() : super('server');
+
+  static final instance = ServerStore._();
+
+  void put(Spi info) {
     box.put(info.id, info);
+    box.updateLastModified();
   }
 
-  List<ServerPrivateInfo> fetch() {
+  List<Spi> fetch() {
     final ids = box.keys;
-    final List<ServerPrivateInfo> ss = [];
+    final List<Spi> ss = [];
     for (final id in ids) {
       final s = box.get(id);
-      if (s != null) {
+      if (s != null && s is Spi) {
         ss.add(s);
       }
     }
@@ -22,13 +26,15 @@ class ServerStore extends PersistentStore<ServerPrivateInfo> {
 
   void delete(String id) {
     box.delete(id);
+    box.updateLastModified();
   }
 
   void deleteAll() {
     box.clear();
+    box.updateLastModified();
   }
 
-  void update(ServerPrivateInfo old, ServerPrivateInfo newInfo) {
+  void update(Spi old, Spi newInfo) {
     if (!have(old)) {
       throw Exception('Old spi: $old not found');
     }
@@ -36,5 +42,5 @@ class ServerStore extends PersistentStore<ServerPrivateInfo> {
     put(newInfo);
   }
 
-  bool have(ServerPrivateInfo s) => box.get(s.id) != null;
+  bool have(Spi s) => box.get(s.id) != null;
 }

@@ -1,17 +1,15 @@
-import 'package:toolbox/data/model/server/server.dart';
-import 'package:toolbox/data/model/server/temp.dart';
+import 'package:server_box/data/model/server/server.dart';
+import 'package:server_box/data/model/server/temp.dart';
 
-import '../model/server/cpu.dart';
-import '../model/server/disk.dart';
-import '../model/server/memory.dart';
-import '../model/server/net_speed.dart';
-import '../model/server/conn.dart';
-import '../model/server/system.dart';
+import 'package:server_box/data/model/server/cpu.dart';
+import 'package:server_box/data/model/server/disk.dart';
+import 'package:server_box/data/model/server/memory.dart';
+import 'package:server_box/data/model/server/net_speed.dart';
+import 'package:server_box/data/model/server/conn.dart';
+import 'package:server_box/data/model/server/system.dart';
 
-class InitStatus {
-  const InitStatus._();
-
-  static OneTimeCpuStatus get _initOneTimeCpuStatus => OneTimeCpuStatus(
+abstract final class InitStatus {
+  static SingleCpuCore get _initOneTimeCpuStatus => SingleCpuCore(
         'cpu',
         0,
         0,
@@ -42,16 +40,14 @@ class InitStatus {
           free: 1,
           avail: 1,
         ),
-        sysVer: 'Loading...',
-        uptime: '',
         disk: [
-          const Disk(
-            dev: '/',
+          Disk(
+            fs: '/',
             mount: '/',
             usedPercent: 0,
-            used: '0',
-            size: '0',
-            avail: '0',
+            used: BigInt.zero,
+            size: BigInt.one,
+            avail: BigInt.zero,
           )
         ],
         tcp: const Conn(maxConn: 0, active: 0, passive: 0, fail: 0),

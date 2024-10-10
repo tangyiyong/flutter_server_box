@@ -1,29 +1,22 @@
 import 'dart:async';
 
 import 'package:dartssh2/dartssh2.dart';
+import 'package:fl_lib/fl_lib.dart';
 import 'package:flutter/material.dart';
-import 'package:toolbox/core/extension/context/common.dart';
-import 'package:toolbox/core/extension/context/dialog.dart';
-import 'package:toolbox/core/extension/context/locale.dart';
-import 'package:toolbox/core/extension/context/snackbar.dart';
-import 'package:toolbox/core/extension/uint8list.dart';
-import 'package:toolbox/core/utils/share.dart';
-import 'package:toolbox/data/res/store.dart';
+import 'package:server_box/core/extension/context/locale.dart';
+import 'package:server_box/data/res/store.dart';
 
-import '../../data/model/app/shell_func.dart';
-import '../../data/model/server/proc.dart';
-import '../../data/model/server/server_private_info.dart';
-import '../../data/res/ui.dart';
-import '../widget/custom_appbar.dart';
-import '../widget/cardx.dart';
-import '../widget/two_line_text.dart';
+import 'package:server_box/data/model/app/shell_func.dart';
+import 'package:server_box/data/model/server/proc.dart';
+import 'package:server_box/data/model/server/server_private_info.dart';
+import 'package:server_box/view/widget/two_line_text.dart';
 
 class ProcessPage extends StatefulWidget {
-  final ServerPrivateInfo spi;
+  final Spi spi;
   const ProcessPage({super.key, required this.spi});
 
   @override
-  _ProcessPageState createState() => _ProcessPageState();
+  State<ProcessPage> createState() => _ProcessPageState();
 }
 
 class _ProcessPageState extends State<ProcessPage> {
@@ -42,9 +35,15 @@ class _ProcessPageState extends State<ProcessPage> {
   List<ProcSortMode> _sortModes = List.from(ProcSortMode.values);
 
   @override
+  void dispose() {
+    super.dispose();
+    _timer.cancel();
+  }
+
+  @override
   void initState() {
     super.initState();
-    _client = widget.spi.server?.client;
+    _client = widget.spi.server?.value.client;
     final duration =
         Duration(seconds: Stores.setting.serverStatusUpdateInterval.fetch());
     _timer = Timer.periodic(duration, (_) => _refresh());
@@ -58,9 +57,10 @@ class _ProcessPageState extends State<ProcessPage> {
 
   Future<void> _refresh() async {
     if (mounted) {
-      final result = await _client?.run(ShellFunc.process.exec).string;
+      final result =
+          await _client?.run(ShellFunc.process.exec(widget.spi.id)).string;
       if (result == null || result.isEmpty) {
-        context.showSnackBar(l10n.noResult);
+        context.showSnackBar(libL10n.empty);
         return;
       }
       _result = PsResult.parse(result, sort: _procSortMode);
@@ -79,12 +79,6 @@ class _ProcessPageState extends State<ProcessPage> {
     } else {
       _timer.cancel();
     }
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-    _timer.cancel();
   }
 
   @override
@@ -107,12 +101,12 @@ class _ProcessPageState extends State<ProcessPage> {
       actions.add(IconButton(
         icon: const Icon(Icons.error),
         onPressed: () => context.showRoundDialog(
-          title: Text(l10n.error),
+          title: libL10n.error,
           child: SingleChildScrollView(child: Text(_result.error!)),
           actions: [
             TextButton(
-              onPressed: () => Shares.copy(_result.error!),
-              child: Text(l10n.copy),
+              onPressed: () => Pfs.copy(_result.error!),
+              child: Text(libL10n.copy),
             ),
           ],
         ),
@@ -143,7 +137,8 @@ class _ProcessPageState extends State<ProcessPage> {
         ? Text(proc.pid.toString())
         : TwoLineText(up: proc.pid.toString(), down: proc.user!);
     return CardX(
-      ListTile(
+      key: ValueKey(proc.pid),
+      child: ListTile(
         leading: SizedBox(
           width: _media.size.width / 6,
           child: leading,
@@ -159,26 +154,22 @@ class _ProcessPageState extends State<ProcessPage> {
         onTap: () => _lastFocusId = proc.pid,
         onLongPress: () {
           context.showRoundDialog(
-            title: Text(l10n.attention),
-            child: Text(l10n.askContinue(
+            title: libL10n.attention,
+            child: Text(libL10n.askContinue(
               '${l10n.stop} ${l10n.process}(${proc.pid})',
             )),
-            actions: [
-              TextButton(
-                onPressed: () async {
-                  await _client?.run('kill ${proc.pid}');
-                  await _refresh();
-                  context.pop();
-                },
-                child: Text(l10n.ok),
-              ),
-            ],
+            actions: Btn.ok(onTap: () async {
+              context.pop();
+              await context.showLoadingDialog(fn: () async {
+                await _client?.run('kill ${proc.pid}');
+                await _refresh();
+              });
+            }).toList,
           );
         },
         selected: _lastFocusId == proc.pid,
         autofocus: _lastFocusId == proc.pid,
       ),
-      key: ValueKey(proc.pid),
     );
   }
 

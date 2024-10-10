@@ -1,5 +1,5 @@
+import 'package:fl_lib/fl_lib.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:toolbox/core/persistant_store.dart';
 
 /// index from 0 -> n : latest -> oldest
 class _ListHistory {
@@ -18,6 +18,7 @@ class _ListHistory {
     _history.remove(path);
     _history.insert(0, path);
     _box.put(_name, _history);
+    _box.updateLastModified();
   }
 
   List get all => _history;
@@ -38,13 +39,16 @@ class _MapHistory {
   void put(String id, String val) {
     _history[id] = val;
     _box.put(_name, _history);
+    _box.updateLastModified();
   }
 
   String? fetch(String id) => _history[id];
 }
 
 class HistoryStore extends PersistentStore {
-  HistoryStore() : super('history');
+  HistoryStore._() : super('history');
+
+  static final instance = HistoryStore._();
 
   /// Paths that user has visited by 'Locate' button
   late final sftpGoPath = _ListHistory(box: box, name: 'sftpPath');
@@ -52,4 +56,7 @@ class HistoryStore extends PersistentStore {
   late final sftpLastPath = _MapHistory(box: box, name: 'sftpLastPath');
 
   late final sshCmds = _ListHistory(box: box, name: 'sshCmds');
+
+  /// Notify users that this app will write script to server to works properly
+  late final writeScriptTipShown = property('writeScriptTipShown', false);
 }

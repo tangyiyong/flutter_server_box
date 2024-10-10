@@ -1,7 +1,6 @@
-import 'package:toolbox/data/model/app/rebuild.dart';
+import 'package:fl_lib/fl_lib.dart';
 
-class RebuildNodes {
-  const RebuildNodes._();
-
-  static final app = RebuildNode();
+abstract final class RNodes {
+  static final app = RNode();
+  static final dark = false.vn;
 }

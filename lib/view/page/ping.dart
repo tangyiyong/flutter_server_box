@@ -1,29 +1,20 @@
 import 'dart:async';
 
+import 'package:fl_lib/fl_lib.dart';
 import 'package:flutter/material.dart';
-import 'package:toolbox/core/extension/context/common.dart';
-import 'package:toolbox/core/extension/context/dialog.dart';
-import 'package:toolbox/core/extension/context/locale.dart';
-import 'package:toolbox/core/extension/context/snackbar.dart';
-import 'package:toolbox/core/extension/uint8list.dart';
-import 'package:toolbox/core/utils/share.dart';
-import 'package:toolbox/data/res/provider.dart';
-import 'package:toolbox/view/widget/value_notifier.dart';
+import 'package:server_box/core/extension/context/locale.dart';
+import 'package:server_box/data/provider/server.dart';
 
-import '../../data/model/server/ping_result.dart';
-import '../../data/res/color.dart';
-import '../../data/res/ui.dart';
-import '../widget/input_field.dart';
-import '../widget/cardx.dart';
+import 'package:server_box/data/model/server/ping_result.dart';
 
 /// Only permit ipv4 / ipv6 / domain chars
 final targetReg = RegExp(r'[a-zA-Z0-9\.-_:]+');
 
 class PingPage extends StatefulWidget {
-  const PingPage({Key? key}) : super(key: key);
+  const PingPage({super.key});
 
   @override
-  _PingPageState createState() => _PingPageState();
+  State<PingPage> createState() => _PingPageState();
 }
 
 class _PingPageState extends State<PingPage>
@@ -33,12 +24,6 @@ class _PingPageState extends State<PingPage>
   bool get isInit => _results.value.isEmpty;
 
   @override
-  void initState() {
-    super.initState();
-    _textEditingController = TextEditingController(text: '');
-  }
-
-  @override
   void dispose() {
     super.dispose();
     _textEditingController.dispose();
@@ -46,12 +31,18 @@ class _PingPageState extends State<PingPage>
   }
 
   @override
+  void initState() {
+    super.initState();
+    _textEditingController = TextEditingController(text: '');
+  }
+
+  @override
   Widget build(BuildContext context) {
     super.build(context);
     return Scaffold(
-      body: ValueBuilder(
+      body: ListenableBuilder(
         listenable: _results,
-        build: _buildBody,
+        builder: (_, __) => _buildBody(),
       ),
       floatingActionButton: _buildFAB(),
     );
@@ -62,17 +53,16 @@ class _PingPageState extends State<PingPage>
       heroTag: 'ping',
       onPressed: () {
         context.showRoundDialog(
-          title: Text(l10n.choose),
+          title: libL10n.select,
           child: Input(
             autoFocus: true,
             controller: _textEditingController,
-            hint: l10n.inputDomainHere,
-            maxLines: 1,
+            hint: 'example.com',
+            maxLines: 2,
+            minLines: 1,
             onSubmitted: (_) => _doPing(),
           ),
-          actions: [
-            TextButton(onPressed: _doPing, child: Text(l10n.ok)),
-          ],
+          actions: Btn.ok(onTap: _doPing).toList,
         );
       },
       child: const Icon(Icons.search),
@@ -85,12 +75,12 @@ class _PingPageState extends State<PingPage>
       await doPing();
     } catch (e) {
       context.showRoundDialog(
-        title: Text(l10n.error),
+        title: libL10n.error,
         child: Text(e.toString()),
         actions: [
           TextButton(
-            onPressed: () => Shares.copy(e.toString()),
-            child: Text(l10n.copy),
+            onPressed: () => Pfs.copy(e.toString()),
+            child: Text(libL10n.copy),
           ),
         ],
       );
@@ -100,12 +90,7 @@ class _PingPageState extends State<PingPage>
 
   Widget _buildBody() {
     if (isInit) {
-      return Center(
-        child: Text(
-          l10n.noResult,
-          style: const TextStyle(fontSize: 15),
-        ),
-      );
+      return Center(child: Text(libL10n.empty));
     }
     return ListView.builder(
       padding: const EdgeInsets.all(11),
@@ -119,25 +104,25 @@ class _PingPageState extends State<PingPage>
     final unknown = l10n.unknown;
     final ms = l10n.ms;
     return CardX(
-      ListTile(
+      child: ListTile(
         contentPadding: const EdgeInsets.symmetric(vertical: 7, horizontal: 17),
         title: Text(
           result.serverName,
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: primaryColor,
+            color: UIs.primaryColor,
           ),
         ),
         subtitle: Text(
           _buildPingSummary(result, unknown, ms),
-          style: UIs.textSize11,
+          style: UIs.text11,
         ),
         trailing: Text(
           '${l10n.pingAvg}${result.statistic?.avg?.toStringAsFixed(2) ?? l10n.unknown} $ms',
           style: TextStyle(
             fontSize: 14,
-            color: primaryColor,
+            color: UIs.primaryColor,
           ),
         ),
       ),
@@ -147,9 +132,9 @@ class _PingPageState extends State<PingPage>
   String _buildPingSummary(PingResult result, String unknown, String ms) {
     final ip = result.ip ?? unknown;
     if (result.results == null || result.results!.isEmpty) {
-      return '$ip - ${l10n.noResult}';
+      return '$ip - ${libL10n.empty}';
     }
-    final ttl = result.results?.first.ttl ?? unknown;
+    final ttl = result.results?.firstOrNull?.ttl ?? unknown;
     final loss = result.statistic?.loss ?? unknown;
     final min = result.statistic?.min ?? unknown;
     final max = result.statistic?.max ?? unknown;
@@ -165,7 +150,7 @@ class _PingPageState extends State<PingPage>
       return;
     }
 
-    if (Pros.server.serverOrder.isEmpty) {
+    if (ServerProvider.serverOrder.value.isEmpty) {
       context.showSnackBar(l10n.pingNoServer);
       return;
     }
@@ -176,7 +161,8 @@ class _PingPageState extends State<PingPage>
       return;
     }
 
-    await Future.wait(Pros.server.servers.map((e) async {
+    await Future.wait(ServerProvider.servers.values.map((v) async {
+      final e = v.value;
       if (e.client == null) {
         return;
       }
