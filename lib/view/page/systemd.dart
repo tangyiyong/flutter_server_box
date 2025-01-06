@@ -137,28 +137,28 @@ final class _SystemdPageState extends State<SystemdPage> {
         children: [
           Icon(func.icon, size: 19),
           const SizedBox(width: 10),
-          Text(func.name.upperFirst),
+          Text(func.name.capitalize),
         ],
       ),
     );
   }
 
   Widget _buildScopeTag(SystemdUnitScope scope) {
-    return _buildTag(scope.name.upperFirst, scope.color, true);
+    return _buildTag(scope.name.capitalize, scope.color, true);
   }
 
   Widget _buildStateTag(SystemdUnitState state) {
-    return _buildTag(state.name.upperFirst, state.color);
+    return _buildTag(state.name.capitalize, state.color);
   }
 
   Widget _buildTypeTag(SystemdUnitType type) {
-    return _buildTag(type.name.upperFirst);
+    return _buildTag(type.name.capitalize);
   }
 
   Widget _buildTag(String tag, [Color? color, bool noPad = false]) {
     return Container(
       decoration: BoxDecoration(
-        color: color?.withOpacity(0.7) ?? UIs.halfAlpha,
+        color: color?.withValues(alpha: 0.7) ?? UIs.halfAlpha,
         borderRadius: BorderRadius.circular(5),
       ),
       child: Text(tag, style: UIs.text11)

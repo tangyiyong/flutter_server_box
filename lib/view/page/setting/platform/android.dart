@@ -21,6 +21,7 @@ class _AndroidSettingsPageState extends State<AndroidSettingsPage> {
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 17),
         children: [
+          _buildFgService(),
           _buildBgRun(),
           _buildAndroidWidgetSharedPreference(),
           if (BioAuth.isPlatformSupported)
@@ -42,11 +43,11 @@ class _AndroidSettingsPageState extends State<AndroidSettingsPage> {
       final keysDel = old.keys.toSet().difference(map.keys.toSet());
       for (final key in keysDel) {
         if (!key.startsWith(_homeWidgetPrefPrefix)) continue;
-        PrefStore.remove(key);
+        PrefStore.shared.remove(key);
       }
       for (final entry in map.entries) {
         if (!entry.key.startsWith(_homeWidgetPrefPrefix)) continue;
-        PrefStore.set(entry.key, entry.value);
+        PrefStore.shared.set(entry.key, entry.value);
       }
       context.showSnackBar(libL10n.success);
     } catch (e) {
@@ -60,8 +61,10 @@ class _AndroidSettingsPageState extends State<AndroidSettingsPage> {
       trailing: const Icon(Icons.keyboard_arrow_right),
       onTap: () async {
         final data = <String, String>{};
-        for (final key in PrefStore.keys()) {
-          final val = PrefStore.get<String>(key);
+        final keys = await PrefStore.shared.keys();
+
+        for (final key in keys) {
+          final val = PrefStore.shared.get<String>(key);
           if (val != null) {
             data[key] = val;
           }
@@ -113,4 +116,11 @@ class _AndroidSettingsPageState extends State<AndroidSettingsPage> {
   //     },
   //   );
   // }
+
+  Widget _buildFgService() {
+    return ListTile(
+      title: TipText(l10n.fgService, l10n.fgServiceTip),
+      trailing: StoreSwitch(prop: Stores.setting.fgService),
+    );
+  }
 }

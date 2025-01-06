@@ -122,7 +122,20 @@ class _ServerDetailPageState extends State<ServerDetailPage>
 
   CustomAppBar _buildAppBar(Server si) {
     return CustomAppBar(
-      title: Text(si.spi.name),
+      title: Hero(
+        tag: 'home_card_title_${si.spi.id}',
+        transitionOnUserGestures: true,
+        child: Material(
+          color: Colors.transparent,
+          child: Text(
+            si.spi.name,
+            style: TextStyle(
+              fontSize: 20,
+              color: context.isDark ? Colors.white : Colors.black,
+            ),
+          ),
+        ),
+      ),
       actions: [
         QrShareBtn(
           data: si.spi.toJsonString(),
@@ -144,7 +157,7 @@ class _ServerDetailPageState extends State<ServerDetailPage>
 
   Widget _buildLogo(Server si) {
     var logoUrl = si.spi.custom?.logoUrl ??
-        _settings.serverLogoUrl.fetch().selfIfNotNullEmpty;
+        _settings.serverLogoUrl.fetch().selfNotEmptyOrNull;
     if (logoUrl == null) return UIs.placeholder;
 
     final dist = si.status.more[StatusCmdType.sys]?.dist;

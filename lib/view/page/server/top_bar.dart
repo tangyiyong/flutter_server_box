@@ -18,29 +18,27 @@ final class _TopBar extends StatelessWidget implements PreferredSizeWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Center(
-            child: InkWell(
-              borderRadius: BorderRadius.circular(13),
-              onTap: () => DebugPage.route.go(
-                context,
-                args: const DebugPageArgs(title: 'Logs(${BuildData.build})'),
-              ),
-              child: const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 7),
-                child: Row(
-                  children: [
-                    Text(
-                      BuildData.name,
-                      style: TextStyle(fontSize: 20),
-                      textAlign: TextAlign.center,
-                    ),
-                    Icon(
-                      Icons.keyboard_arrow_right,
-                      color: Colors.grey,
-                      size: 17,
-                    ),
-                  ],
-                ),
+          // Keep this btn. For issue #657.
+          InkWell(
+            borderRadius: BorderRadius.circular(13),
+            onTap: () {
+              SettingsPage.route.go(context);
+            },
+            child: const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+              child: Row(
+                children: [
+                  Text(
+                    BuildData.name,
+                    style: TextStyle(fontSize: 19),
+                  ),
+                  SizedBox(width: 5),
+                  Icon(
+                    Icons.settings,
+                    color: Colors.grey,
+                    size: 17,
+                  ),
+                ],
               ),
             ),
           ),

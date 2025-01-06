@@ -51,7 +51,7 @@ class _LocalFilePageState extends State<LocalFilePage>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    final title = _path.path.fileName ?? libL10n.file;
+    final title = _path.path.fileNameGetter ?? libL10n.file;
     return Scaffold(
       appBar: CustomAppBar(
         title: AnimatedSwitcher(
@@ -65,6 +65,10 @@ class _LocalFilePageState extends State<LocalFilePage>
                 final path = await Pfs.pickFilePath();
                 if (path == null) return;
                 final name = path.getFileName() ?? 'imported';
+                final destinationDir = Directory(_path.path);
+                if (!await destinationDir.exists()) {
+                  await destinationDir.create(recursive: true);
+                }
                 await File(path).copy(_path.path.joinPath(name));
                 setState(() {});
               },
