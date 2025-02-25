@@ -53,7 +53,7 @@ class _LocalFilePageState extends State<LocalFilePage>
     super.build(context);
     final title = _path.path.fileNameGetter ?? libL10n.file;
     return Scaffold(
-      appBar: CustomAppBar(
+      appBar: AppBar(
         title: AnimatedSwitcher(
           duration: Durations.short3,
           child: Text(title, key: ValueKey(title)),
@@ -217,14 +217,17 @@ class _LocalFilePageState extends State<LocalFilePage>
                 );
                 return;
               }
-              final ret = await EditorPage.route.go(
+
+              await EditorPage.route.go(
                 context,
-                args: EditorPageArgs(path: file.absolute.path),
+                args: EditorPageArgs(
+                  path: file.absolute.path,
+                  onSave: (context, _) {
+                    context.showSnackBar(l10n.saved);
+                    setState(() {});
+                  },
+                ),
               );
-              if (ret?.editExistedOk == true) {
-                context.showSnackBar(l10n.saved);
-                setState(() {});
-              }
             },
           ),
           Btn.tile(

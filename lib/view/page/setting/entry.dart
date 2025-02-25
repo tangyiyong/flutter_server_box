@@ -305,6 +305,7 @@ final class _AppSettingsPageState extends State<AppSettingsPage> {
         _buildEditorTheme(),
         _buildEditorDarkTheme(),
         _buildEditorHighlight(),
+        _buildEditorCloseAfterEdit(),
       ].map((e) => CardX(child: e)).toList(),
     );
   }
@@ -329,7 +330,7 @@ final class _AppSettingsPageState extends State<AppSettingsPage> {
           return Text(display, style: UIs.textGrey);
         },
       ),
-      onTap: () => Funcs.throttle(
+      onTap: () => Fns.throttle(
         () => AppUpdateIface.doUpdate(
           context: context,
           build: BuildData.build,
@@ -392,19 +393,10 @@ final class _AppSettingsPageState extends State<AppSettingsPage> {
                 )
             ];
             if (!_setting.useSystemPrimaryColor.fetch()) {
-              children.addAll([
-                Input(
-                  onSubmitted: _onSaveColor,
-                  controller: ctrl,
-                  hint: '#8b2252',
-                  icon: Icons.colorize,
-                  suggestion: false,
-                ),
-                ColorPicker(
-                  color: Color(_setting.colorSeed.fetch()),
-                  onColorChanged: (c) => ctrl.text = c.toHex,
-                )
-              ]);
+              children.add(ColorPicker(
+                color: Color(_setting.colorSeed.fetch()),
+                onColorChanged: (c) => ctrl.text = c.toHex,
+              ));
             }
             return Column(
               mainAxisSize: MainAxisSize.min,
@@ -1338,32 +1330,49 @@ final class _AppSettingsPageState extends State<AppSettingsPage> {
     final map = await Stores.setting.getAllMap(includeInternalKeys: true);
     final keys = map.keys;
 
+    void onSave(BuildContext context, EditorPageRet ret) {
+      if (ret.typ != EditorPageRetType.text) {
+        context.showRoundDialog(
+          title: libL10n.fail,
+          child: Text(l10n.invalid),
+        );
+        return;
+      }
+      try {
+        final newSettings = json.decode(ret.val) as Map<String, dynamic>;
+        Stores.setting.box.putAll(newSettings);
+        final newKeys = newSettings.keys;
+        final removedKeys = keys.where((e) => !newKeys.contains(e));
+        for (final key in removedKeys) {
+          Stores.setting.box.delete(key);
+        }
+      } catch (e, trace) {
+        context.showRoundDialog(
+          title: libL10n.error,
+          child: Text('${l10n.save}:\n$e'),
+        );
+        Loggers.app.warning('Update json settings failed', e, trace);
+      }
+    }
+
     /// Encode [map] to String with indent `\t`
     final text = jsonIndentEncoder.convert(map);
-    final ret = await EditorPage.route.go(
+    await EditorPage.route.go(
       context,
       args: EditorPageArgs(
         text: text,
         langCode: 'json',
         title: libL10n.setting,
+        onSave: onSave,
       ),
     );
-    final result = ret?.result;
-    if (result == null) return;
-    try {
-      final newSettings = json.decode(result) as Map<String, dynamic>;
-      Stores.setting.box.putAll(newSettings);
-      final newKeys = newSettings.keys;
-      final removedKeys = keys.where((e) => !newKeys.contains(e));
-      for (final key in removedKeys) {
-        Stores.setting.box.delete(key);
-      }
-    } catch (e, trace) {
-      context.showRoundDialog(
-        title: libL10n.error,
-        child: Text('${l10n.save}:\n$e'),
-      );
-      Loggers.app.warning('Update json settings failed', e, trace);
-    }
+  }
+
+  Widget _buildEditorCloseAfterEdit() {
+    return ListTile(
+      leading: const Icon(MingCute.edit_fill),
+      title: Text(l10n.closeAfterSave),
+      trailing: StoreSwitch(prop: _setting.closeAfterSave),
+    );
   }
 }
